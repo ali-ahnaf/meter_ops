@@ -4,17 +4,26 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border text-sm font-semibold uppercase tracking-[0.24em] transition-all duration-200 disabled:pointer-events-none disabled:opacity-40',
   {
     variants: {
       variant: {
-        default: 'bg-amber-700 px-5 py-3 text-amber-50 hover:bg-amber-800',
+        default:
+          'border-[rgba(34,211,238,0.55)] bg-[rgba(34,211,238,0.12)] text-cyan-200 shadow-[0_0_24px_rgba(34,211,238,0.18)] hover:border-cyan-300 hover:bg-[rgba(34,211,238,0.18)]',
         secondary:
-          'bg-slate-900 px-5 py-3 text-slate-50 hover:bg-slate-700',
+          'border-[rgba(244,114,182,0.38)] bg-[rgba(244,114,182,0.08)] text-pink-200 hover:border-pink-300 hover:bg-[rgba(244,114,182,0.14)]',
+        ghost:
+          'border-[rgba(148,163,184,0.24)] bg-transparent text-slate-200 hover:border-[rgba(34,211,238,0.45)] hover:text-cyan-200',
+      },
+      size: {
+        default: 'px-5 py-3',
+        sm: 'px-3 py-2 text-xs',
+        icon: 'h-12 w-12 px-0 py-0',
       },
     },
     defaultVariants: {
       variant: 'default',
+      size: 'default',
     },
   },
 );

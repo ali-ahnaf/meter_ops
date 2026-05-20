@@ -1,25 +1,26 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import './globals.css';
-import { openSans, lora } from '@/lib/fonts';
+import { spaceMono, ibmPlexMono } from '@/lib/fonts';
 
 export const metadata: Metadata = {
   metadataBase: new URL('http://localhost:3000'),
   title: {
-    default: 'Template Next.js',
-    template: '%s | Template Next.js',
+    default: 'meter_ops',
+    template: '%s | meter_ops',
   },
   description:
-    'Reusable Next.js template with TypeORM.',
+    'Electricity meter session tracking, OCR capture, and neon-black consumption analysis.',
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="en">
-      <body className={`${openSans.variable} ${lora.variable} antialiased`}>
+      <body className={`${spaceMono.variable} ${ibmPlexMono.variable} antialiased`}>
         {children}
       </body>
     </html>

@@ -1,23 +1,19 @@
 {
-  "name": "template-nextjs",
+  "name": "meter_ops",
   "version": "1.0.0",
   "private": true,
   "author": "Ali Ahnaf https://github.com/ali-ahnaf",
   "license": "ISC",
-  "description": "Reusable Next.js template with TypeORM.",
+  "description": "Dystopian meter reading and electricity bill calculator.",
   "scripts": {
     "build": "next build",
-    "postbuild": "node scripts/copy-static.js",
     "dev": "next dev -p 3000",
     "lint": "next lint",
-    "migration:generate": "TS_NODE_PROJECT=tsconfig.typeorm.json node --require ts-node/register ./node_modules/typeorm/cli.js migration:generate migrations/Migration -d lib/typeorm-datasource.ts",
-    "migration:run": "TS_NODE_PROJECT=tsconfig.typeorm.json node --require ts-node/register ./node_modules/typeorm/cli.js migration:run -d lib/typeorm-datasource.ts",
     "next": "next",
     "start": "next start"
   },
   "dependencies": {
     "@radix-ui/react-slot": "1.1.1",
-    "better-sqlite3": "^12.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.454.0",
@@ -25,9 +21,8 @@
     "next-themes": "^0.4.6",
     "react": "^18",
     "react-dom": "^18",
-    "reflect-metadata": "^0.2.2",
     "tailwind-merge": "^2.5.5",
-    "typeorm": "^0.3.27"
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
@@ -38,9 +33,6 @@
     "eslint-config-next": "^14.2.16",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.20.6",
-    "typeorm-ts-node-commonjs": "^0.3.20",
     "typescript": "^5"
   }
 }

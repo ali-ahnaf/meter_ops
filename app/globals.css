@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f6ef;
-  --foreground: #1e293b;
-  --card: #fffdf8;
-  --card-foreground: #1e293b;
-  --primary: #b45309;
-  --primary-foreground: #fff7ed;
-  --secondary: #dbeafe;
-  --secondary-foreground: #0f172a;
-  --muted: #e2e8f0;
-  --muted-foreground: #475569;
-  --border: rgba(30, 41, 59, 0.12);
+  --background: #030712;
+  --foreground: #e2f8ff;
+  --card: rgba(8, 15, 30, 0.84);
+  --card-foreground: #e2f8ff;
+  --primary: #22d3ee;
+  --primary-foreground: #03111b;
+  --secondary: #f472b6;
+  --secondary-foreground: #140813;
+  --muted: #0f172a;
+  --muted-foreground: #94a3b8;
+  --border: rgba(56, 189, 248, 0.18);
+  --panel-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12), 0 0 32px rgba(34, 211, 238, 0.12);
 }
 
 * {
@@ -24,13 +25,119 @@ html {
 
 body {
   margin: 0;
+  min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(180, 83, 9, 0.14), transparent 32%),
-    linear-gradient(180deg, #f8f4e7 0%, #f7f6ef 42%, #eef4ff 100%);
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.16), transparent 28%),
+    radial-gradient(circle at 85% 12%, rgba(244, 114, 182, 0.12), transparent 18%),
+    linear-gradient(180deg, #02040a 0%, #020817 45%, #01030a 100%);
   color: var(--foreground);
+  font-family: var(--font-space-mono), monospace;
+  letter-spacing: 0.02em;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.2);
+  color: #f8fafc;
+}
+
+.tech-panel {
+  background:
+    linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(4, 10, 22, 0.9)),
+    linear-gradient(135deg, rgba(34, 211, 238, 0.04), transparent 45%);
+  border: 1px solid var(--border);
+  box-shadow: var(--panel-shadow);
+}
+
+.grid-overlay {
+  position: relative;
+}
+
+.grid-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.95), transparent);
+}
+
+.glitch-text {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.glitch-text::before {
+  transform: translate(1px, -1px);
+  color: rgba(244, 114, 182, 0.75);
+  clip-path: inset(0 0 48% 0);
+}
+
+.glitch-text::after {
+  transform: translate(-1px, 1px);
+  color: rgba(34, 211, 238, 0.75);
+  clip-path: inset(52% 0 0 0);
+}
+
+.scan-lines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-lines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(34, 211, 238, 0.14) 48%,
+    rgba(34, 211, 238, 0.24) 50%,
+    transparent 54%
+  );
+  animation: scan 3.8s linear infinite;
+  pointer-events: none;
+}
+
+.data-flicker {
+  animation: flicker 4.5s steps(2, end) infinite;
+}
+
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes flicker {
+  0%, 18%, 22%, 62%, 64%, 100% {
+    opacity: 1;
+  }
+  20%, 63% {
+    opacity: 0.72;
+  }
 }

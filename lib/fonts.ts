@@ -1,11 +1,13 @@
-import { Lora, Open_Sans } from 'next/font/google';
+import { IBM_Plex_Mono, Space_Mono } from 'next/font/google';
 
-export const openSans = Open_Sans({
+export const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  variable: '--font-open-sans',
+  variable: '--font-ibm-plex-mono',
+  weight: ['400', '500', '600', '700'],
 });
 
-export const lora = Lora({
+export const spaceMono = Space_Mono({
   subsets: ['latin'],
-  variable: '--font-lora',
+  variable: '--font-space-mono',
+  weight: ['400', '700'],
 });

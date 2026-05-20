@@ -1,13 +1,13 @@
-import Navigation from '@/components/navigation';
 import Footer from '@/components/footer';
-import MeterOpsDashboard from '@/components/meter-ops-dashboard';
+import Navigation from '@/components/navigation';
+import ConsumptionReport from '@/components/consumption-report';
 
-export default function HomePage() {
+export default function ConsumptionPage() {
   return (
     <div className="min-h-screen">
       <Navigation />
       <main className="overflow-x-hidden">
-        <MeterOpsDashboard />
+        <ConsumptionReport />
       </main>
       <Footer />
     </div>
