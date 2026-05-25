@@ -1,15 +1,5 @@
-import Navigation from '@/components/navigation';
-import Footer from '@/components/footer';
-import MeterOpsDashboard from '@/components/meter-ops-dashboard';
+import SessionManager from '@/components/session-manager';
 
 export default function HomePage() {
-  return (
-    <div className="min-h-screen">
-      <Navigation />
-      <main className="overflow-x-hidden">
-        <MeterOpsDashboard />
-      </main>
-      <Footer />
-    </div>
-  );
+  return <SessionManager />;
 }

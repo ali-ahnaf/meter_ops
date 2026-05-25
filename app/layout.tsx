@@ -6,11 +6,10 @@ import { spaceMono, ibmPlexMono } from '@/lib/fonts';
 export const metadata: Metadata = {
   metadataBase: new URL('http://localhost:3000'),
   title: {
-    default: 'meter_ops',
+    default: 'Meter Ops',
     template: '%s | meter_ops',
   },
-  description:
-    'Electricity meter session tracking, OCR capture, and neon-black consumption analysis.',
+  description: 'Simple meter capture sessions with OCR-assisted readings.',
 };
 
 export default function RootLayout({

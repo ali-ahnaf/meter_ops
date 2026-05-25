@@ -4,16 +4,16 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border text-sm font-semibold uppercase tracking-[0.24em] transition-all duration-200 disabled:pointer-events-none disabled:opacity-40',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border text-sm font-semibold transition-colors duration-200 disabled:pointer-events-none disabled:opacity-40',
   {
     variants: {
       variant: {
         default:
-          'border-[rgba(34,211,238,0.55)] bg-[rgba(34,211,238,0.12)] text-cyan-200 shadow-[0_0_24px_rgba(34,211,238,0.18)] hover:border-cyan-300 hover:bg-[rgba(34,211,238,0.18)]',
+          'border-blue-700 bg-blue-700 text-white hover:bg-blue-800',
         secondary:
-          'border-[rgba(244,114,182,0.38)] bg-[rgba(244,114,182,0.08)] text-pink-200 hover:border-pink-300 hover:bg-[rgba(244,114,182,0.14)]',
+          'border-slate-300 bg-white text-slate-900 hover:bg-slate-50',
         ghost:
-          'border-[rgba(148,163,184,0.24)] bg-transparent text-slate-200 hover:border-[rgba(34,211,238,0.45)] hover:text-cyan-200',
+          'border-transparent bg-transparent text-slate-700 hover:bg-slate-100',
       },
       size: {
         default: 'px-5 py-3',
