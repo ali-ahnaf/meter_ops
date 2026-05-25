@@ -5,7 +5,7 @@ import NextImage from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Calculator, Camera, Check, LoaderCircle, Plus, Trash2, X } from 'lucide-react';
+import { Calculator, Camera, Check, LoaderCircle, Plus, Trash2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MeterReadingsChart from '@/components/meter-readings-chart';
 import {
@@ -72,6 +72,9 @@ export default function SessionManager() {
   const [isCalculationModalOpen, setIsCalculationModalOpen] = useState(false);
   const [selectedCalculationSessionIds, setSelectedCalculationSessionIds] = useState<string[]>([]);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importDate, setImportDate] = useState('');
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem(STORAGE_KEY);
@@ -255,6 +258,51 @@ export default function SessionManager() {
   const closeCalculationModal = () => {
     setIsCalculationModalOpen(false);
     setSelectedCalculationSessionIds([]);
+  };
+
+  const openImportModal = () => {
+    setImportText('');
+    setImportDate(new Date().toISOString().slice(0, 10));
+    setIsImportModalOpen(true);
+  };
+
+  const closeImportModal = () => {
+    setIsImportModalOpen(false);
+  };
+
+  const importReadings = () => {
+    const capturedAt = new Date(`${importDate}T12:00:00`).toISOString();
+    const readings: MeterReading[] = importText
+      .split('\n')
+      .flatMap((line) => {
+        const match = line.trim().match(/^(\S+)\s+([\d.]+)/);
+        if (!match) return [];
+        const ownerName = match[1];
+        const readingValue = Number(match[2]);
+        if (!Number.isFinite(readingValue)) return [];
+        return [{
+          id: crypto.randomUUID(),
+          ownerName,
+          reading: readingValue,
+          ocrText: '',
+          capturedAt,
+          ...(ownerName === 'MM' && { isMotherMeter: true }),
+        } satisfies MeterReading];
+      });
+
+    if (readings.length === 0) return;
+
+    const newSession: MeterSession = {
+      id: crypto.randomUUID(),
+      createdAt: capturedAt,
+      readings,
+    };
+
+    const nextSessions = sortSessions([newSession, ...sessions]);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSessions));
+    setSessions(nextSessions);
+    closeImportModal();
+    router.push(`/sessions/${newSession.id}`);
   };
 
   const deleteSession = (sessionId: string) => {
@@ -623,8 +671,18 @@ export default function SessionManager() {
               <p className="text-sm uppercase tracking-[0.14em] text-slate-500">Sessions</p>
               <h2 className="mt-2 text-2xl font-bold text-slate-900">All saved sessions</h2>
             </div>
-            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
-              {sessions.length} total
+            <div className="flex items-center gap-2">
+              <button
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                onClick={openImportModal}
+                title="Import readings"
+                type="button"
+              >
+                <Upload className="h-4 w-4" />
+              </button>
+              <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
+                {sessions.length} total
+              </div>
             </div>
           </div>
 
@@ -936,6 +994,82 @@ export default function SessionManager() {
                   onClick={viewCalculation}
                 >
                   Calculate
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {isImportModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+            <div className="surface-card max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] p-6 sm:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.14em] text-slate-500">
+                    Import readings
+                  </p>
+                  <h3 className="mt-2 text-2xl font-bold text-slate-900">
+                    Paste meter readings
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    One reading per line in the format{' '}
+                    <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">
+                      OWNER&nbsp;&nbsp;READING
+                    </code>
+                    , e.g.{' '}
+                    <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">
+                      MM&nbsp;&nbsp;11458.8
+                    </code>
+                    .
+                  </p>
+                </div>
+                <Button onClick={closeImportModal} variant="ghost">
+                  <X className="h-4 w-4" />
+                  Close
+                </Button>
+              </div>
+
+              <div className="mt-6 space-y-5">
+                <div>
+                  <label className="field-label" htmlFor="import-date">
+                    Session date
+                  </label>
+                  <input
+                    className="field-input"
+                    id="import-date"
+                    type="date"
+                    value={importDate}
+                    onChange={(e) => setImportDate(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label" htmlFor="import-text">
+                    Readings
+                  </label>
+                  <textarea
+                    autoFocus
+                    className="field-input min-h-64 resize-y font-mono text-sm"
+                    id="import-text"
+                    placeholder={"MM    11458.8\n1A    28926.3\n1B    26646.3\n2A    16508\n..."}
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] bg-slate-100 px-4 py-3">
+                <p className="text-sm text-slate-600">
+                  {importText.split('\n').filter((l) => /^\S+\s+[\d.]+/.test(l.trim())).length} readings parsed
+                </p>
+                <Button
+                  disabled={
+                    !importDate ||
+                    importText.split('\n').filter((l) => /^\S+\s+[\d.]+/.test(l.trim())).length === 0
+                  }
+                  onClick={importReadings}
+                >
+                  Import session
                 </Button>
               </div>
             </div>
