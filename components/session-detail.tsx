@@ -143,7 +143,7 @@ export default function SessionDetail({ sessionId }: SessionDetailProps) {
             <h2 className="text-xl font-semibold text-slate-900">Session not found</h2>
             <p className="mt-2 max-w-xl text-slate-600">
               The saved session is missing from local storage. Which is not ideal, but at least
-              it's honest.
+              it&apos;s honest.
             </p>
           </section>
         )}
