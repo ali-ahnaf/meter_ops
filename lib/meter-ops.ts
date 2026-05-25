@@ -15,12 +15,19 @@ export type MeterSession = {
 
 export const STORAGE_KEY = 'meter_ops_sessions_v2';
 
-export const OCR_REGION = {
+export type OcrRegion = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export const OCR_REGION: OcrRegion = {
   x: 0.18,
   y: 0.34,
   width: 0.64,
   height: 0.24,
-} as const;
+};
 
 export function sortSessions(sessions: MeterSession[]) {
   return [...sessions].sort(

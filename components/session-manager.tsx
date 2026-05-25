@@ -1,6 +1,6 @@
 'use client';
 
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,19 +16,40 @@ import {
   sortSessions,
   type MeterReading,
   type MeterSession,
+  type OcrRegion,
 } from '@/lib/meter-ops';
 
 type CaptureDraft = {
+  file: File;
   fileName: string;
+  lastProcessedRegion: OcrRegion | null;
+  lastSuggestedReading: string;
   ownerName: string;
   ocrText: string;
   previewUrl: string;
+  region: OcrRegion;
   readingInput: string;
 };
+
+type ResizeHandle = 'ne' | 'nw' | 'se' | 'sw';
+
+type RegionInteraction = {
+  mode: 'move' | 'resize';
+  pointerId: number;
+  handle?: ResizeHandle;
+  startClientX: number;
+  startClientY: number;
+  startRegion: OcrRegion;
+};
+
+const MIN_OCR_REGION_WIDTH = 0.18;
+const MIN_OCR_REGION_HEIGHT = 0.12;
 
 export default function SessionManager() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const previewFrameRef = useRef<HTMLDivElement | null>(null);
+  const ocrRequestIdRef = useRef(0);
   const [sessions, setSessions] = useState<MeterSession[]>([]);
   const [draftReadings, setDraftReadings] = useState<MeterReading[]>([]);
   const [captureDraft, setCaptureDraft] = useState<CaptureDraft | null>(null);
@@ -36,6 +57,7 @@ export default function SessionManager() {
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [regionInteraction, setRegionInteraction] = useState<RegionInteraction | null>(null);
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem(STORAGE_KEY);
@@ -65,16 +87,148 @@ export default function SessionManager() {
   }, [isLoaded, sessions]);
 
   useEffect(() => {
+    const previewUrl = captureDraft?.previewUrl;
+
     return () => {
-      if (captureDraft?.previewUrl) {
-        URL.revokeObjectURL(captureDraft.previewUrl);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
       }
     };
-  }, [captureDraft]);
+  }, [captureDraft?.previewUrl]);
+
+  useEffect(() => {
+    if (!regionInteraction) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerId !== regionInteraction.pointerId || !previewFrameRef.current) {
+        return;
+      }
+
+      const bounds = previewFrameRef.current.getBoundingClientRect();
+
+      if (bounds.width <= 0 || bounds.height <= 0) {
+        return;
+      }
+
+      const deltaX = (event.clientX - regionInteraction.startClientX) / bounds.width;
+      const deltaY = (event.clientY - regionInteraction.startClientY) / bounds.height;
+
+      setCaptureDraft((current) => {
+        if (!current) {
+          return current;
+        }
+
+        const nextRegion =
+          regionInteraction.mode === 'move'
+            ? moveRegion(regionInteraction.startRegion, deltaX, deltaY)
+            : resizeRegion(
+                regionInteraction.startRegion,
+                regionInteraction.handle ?? 'se',
+                deltaX,
+                deltaY,
+              );
+
+        return { ...current, region: nextRegion };
+      });
+    };
+
+    const stopInteraction = (event: PointerEvent) => {
+      if (event.pointerId === regionInteraction.pointerId) {
+        setRegionInteraction(null);
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', stopInteraction);
+    window.addEventListener('pointercancel', stopInteraction);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopInteraction);
+      window.removeEventListener('pointercancel', stopInteraction);
+    };
+  }, [regionInteraction]);
 
   const requestCapture = () => {
     setErrorMessage('');
     fileInputRef.current?.click();
+  };
+
+  const runOcrForDraft = async (file: File, region: OcrRegion) => {
+    const requestId = ++ocrRequestIdRef.current;
+    setErrorMessage('');
+    setIsRecognizing(true);
+    setOcrProgress(6);
+
+    try {
+      const croppedImage = await cropSelectedRegion(file, region);
+      const { recognize } = await import('tesseract.js');
+      const result = await recognize(croppedImage, 'eng', {
+        logger: (message) => {
+          if (
+            requestId === ocrRequestIdRef.current &&
+            message.status === 'recognizing text' &&
+            typeof message.progress === 'number'
+          ) {
+            setOcrProgress(Math.round(message.progress * 100));
+          }
+        },
+      });
+
+      if (requestId !== ocrRequestIdRef.current) {
+        return;
+      }
+
+      const ocrText = cleanOcrText(result.data.text);
+      const suggestedReading = extractReadingValue(ocrText)?.toString() ?? '';
+
+      setCaptureDraft((current) => {
+        if (!current || current.file !== file) {
+          return current;
+        }
+
+        const shouldReplaceReading =
+          !current.readingInput.trim() || current.readingInput === current.lastSuggestedReading;
+
+        return {
+          ...current,
+          ocrText,
+          readingInput: shouldReplaceReading ? suggestedReading : current.readingInput,
+          lastProcessedRegion: cloneRegion(region),
+          lastSuggestedReading: suggestedReading,
+        };
+      });
+    } catch (error) {
+      if (requestId !== ocrRequestIdRef.current) {
+        return;
+      }
+
+      console.error('OCR failed:', error);
+      setCaptureDraft((current) => {
+        if (!current || current.file !== file) {
+          return current;
+        }
+
+        const shouldClearReading =
+          current.readingInput === current.lastSuggestedReading || !current.readingInput.trim();
+
+        return {
+          ...current,
+          ocrText: '',
+          readingInput: shouldClearReading ? '' : current.readingInput,
+          lastProcessedRegion: cloneRegion(region),
+          lastSuggestedReading: '',
+        };
+      });
+      setErrorMessage('OCR missed the reading. Very ambitious of it. Enter the value manually.');
+    } finally {
+      if (requestId === ocrRequestIdRef.current) {
+        setIsRecognizing(false);
+        setOcrProgress(100);
+      }
+    }
   };
 
   const handleFileSelection = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -85,44 +239,21 @@ export default function SessionManager() {
     }
 
     const previewUrl = URL.createObjectURL(file);
+    const region = cloneRegion(OCR_REGION);
     setErrorMessage('');
-    setIsRecognizing(true);
-    setOcrProgress(6);
-
-    try {
-      const croppedImage = await cropSelectedRegion(file);
-      const { recognize } = await import('tesseract.js');
-      const result = await recognize(croppedImage, 'eng', {
-        logger: (message) => {
-          if (message.status === 'recognizing text' && typeof message.progress === 'number') {
-            setOcrProgress(Math.round(message.progress * 100));
-          }
-        },
-      });
-
-      const ocrText = cleanOcrText(result.data.text);
-      setCaptureDraft({
-        fileName: file.name,
-        ownerName: '',
-        ocrText,
-        previewUrl,
-        readingInput: extractReadingValue(ocrText)?.toString() ?? '',
-      });
-    } catch (error) {
-      console.error('OCR failed:', error);
-      setCaptureDraft({
-        fileName: file.name,
-        ownerName: '',
-        ocrText: '',
-        previewUrl,
-        readingInput: '',
-      });
-      setErrorMessage('OCR missed the reading. Very ambitious of it. Enter the value manually.');
-    } finally {
-      setIsRecognizing(false);
-      setOcrProgress(100);
-      event.target.value = '';
-    }
+    setCaptureDraft({
+      file,
+      fileName: file.name,
+      lastProcessedRegion: null,
+      lastSuggestedReading: '',
+      ownerName: '',
+      ocrText: '',
+      previewUrl,
+      region,
+      readingInput: '',
+    });
+    event.target.value = '';
+    await runOcrForDraft(file, region);
   };
 
   const updateCaptureDraft = (changes: Partial<CaptureDraft>) => {
@@ -130,14 +261,46 @@ export default function SessionManager() {
   };
 
   const closeCaptureDraft = () => {
-    if (captureDraft?.previewUrl) {
-      URL.revokeObjectURL(captureDraft.previewUrl);
-    }
-
+    ocrRequestIdRef.current += 1;
+    setRegionInteraction(null);
+    setIsRecognizing(false);
     setCaptureDraft(null);
     setErrorMessage('');
     setOcrProgress(0);
   };
+
+  const beginMoveRegion = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!captureDraft) {
+      return;
+    }
+
+    event.preventDefault();
+    setRegionInteraction({
+      mode: 'move',
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startRegion: cloneRegion(captureDraft.region),
+    });
+  };
+
+  const beginResizeRegion =
+    (handle: ResizeHandle) => (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (!captureDraft) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      setRegionInteraction({
+        mode: 'resize',
+        pointerId: event.pointerId,
+        handle,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startRegion: cloneRegion(captureDraft.region),
+      });
+    };
 
   const saveReading = (action: 'continue' | 'end') => {
     if (!captureDraft) {
@@ -190,6 +353,11 @@ export default function SessionManager() {
     router.push(`/sessions/${nextSession.id}`);
   };
 
+  const regionNeedsRescan =
+    captureDraft &&
+    (!captureDraft.lastProcessedRegion ||
+      !regionsMatch(captureDraft.region, captureDraft.lastProcessedRegion));
+
   return (
     <main className="app-shell">
       <div className="page-wrap space-y-6">
@@ -229,7 +397,7 @@ export default function SessionManager() {
           type="file"
         />
 
-        {isRecognizing ? (
+        {isRecognizing && !captureDraft ? (
           <section className="surface-card rounded-[1.75rem] p-6 sm:p-8">
             <div className="flex items-center gap-3 text-slate-700">
               <LoaderCircle className="h-5 w-5 animate-spin" />
@@ -245,7 +413,7 @@ export default function SessionManager() {
           </section>
         ) : null}
 
-        {errorMessage ? (
+        {errorMessage && !captureDraft ? (
           <section className="rounded-[1.5rem] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {errorMessage}
           </section>
@@ -319,8 +487,10 @@ export default function SessionManager() {
 
               <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                 <div>
-                  <div className="relative overflow-hidden rounded-[1.4rem] bg-slate-900">
-                    {/* Show the fixed crop area used for OCR so the reading source is obvious. */}
+                  <div
+                    ref={previewFrameRef}
+                    className="relative overflow-hidden rounded-[1.4rem] bg-slate-900"
+                  >
                     <NextImage
                       alt="Captured meter"
                       className="block h-full max-h-[25rem] w-full object-cover"
@@ -330,14 +500,66 @@ export default function SessionManager() {
                       unoptimized
                       width={1600}
                     />
-                    <div className="meter-region" />
+                    <div
+                      className="meter-region"
+                      onPointerDown={beginMoveRegion}
+                      style={regionStyle(captureDraft.region)}
+                    >
+                      <span className="meter-region__label">OCR region</span>
+                      {(['nw', 'ne', 'sw', 'se'] as const).map((handle) => (
+                        <button
+                          key={handle}
+                          aria-label={`Resize OCR region from the ${handle} corner`}
+                          className={`meter-region__handle meter-region__handle--${handle}`}
+                          onPointerDown={beginResizeRegion(handle)}
+                          type="button"
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <p className="mt-3 text-sm text-slate-500">
-                    OCR uses the highlighted region from the captured photo.
-                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <p className="text-sm text-slate-500">
+                      Drag the box or pull a corner to change the OCR area, then rescan it.
+                    </p>
+                    <Button
+                      disabled={isRecognizing}
+                      onClick={() => runOcrForDraft(captureDraft.file, captureDraft.region)}
+                      type="button"
+                      variant="secondary"
+                    >
+                      {isRecognizing ? 'Scanning...' : 'Rescan OCR'}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-5">
+                  {isRecognizing ? (
+                    <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-center gap-3 text-slate-700">
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Scanning the selected meter region...</span>
+                      </div>
+                      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className="h-full rounded-full bg-blue-700 transition-[width] duration-300"
+                          style={{ width: `${ocrProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {regionNeedsRescan ? (
+                    <div className="rounded-[1.2rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      The box moved, so the detected text below is outdated until you rescan it.
+                    </div>
+                  ) : null}
+
+                  {errorMessage ? (
+                    <div className="rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {errorMessage}
+                    </div>
+                  ) : null}
+
                   <div>
                     <label className="field-label" htmlFor="owner-name">
                       Owner name
@@ -399,15 +621,15 @@ export default function SessionManager() {
   );
 }
 
-async function cropSelectedRegion(file: File) {
+async function cropSelectedRegion(file: File, region: OcrRegion) {
   const image = await loadImage(file);
 
   try {
     const canvas = document.createElement('canvas');
-    const width = Math.max(1, Math.floor(image.naturalWidth * OCR_REGION.width));
-    const height = Math.max(1, Math.floor(image.naturalHeight * OCR_REGION.height));
-    const startX = Math.floor(image.naturalWidth * OCR_REGION.x);
-    const startY = Math.floor(image.naturalHeight * OCR_REGION.y);
+    const width = Math.max(1, Math.floor(image.naturalWidth * region.width));
+    const height = Math.max(1, Math.floor(image.naturalHeight * region.height));
+    const startX = Math.floor(image.naturalWidth * region.x);
+    const startY = Math.floor(image.naturalHeight * region.y);
 
     canvas.width = width;
     canvas.height = height;
@@ -459,4 +681,100 @@ async function loadImage(file: File) {
     };
     image.src = objectUrl;
   });
+}
+
+function cloneRegion(region: OcrRegion): OcrRegion {
+  return {
+    x: region.x,
+    y: region.y,
+    width: region.width,
+    height: region.height,
+  };
+}
+
+function regionStyle(region: OcrRegion) {
+  return {
+    left: `${region.x * 100}%`,
+    top: `${region.y * 100}%`,
+    width: `${region.width * 100}%`,
+    height: `${region.height * 100}%`,
+  };
+}
+
+function regionsMatch(left: OcrRegion, right: OcrRegion) {
+  return (
+    Math.abs(left.x - right.x) < 0.001 &&
+    Math.abs(left.y - right.y) < 0.001 &&
+    Math.abs(left.width - right.width) < 0.001 &&
+    Math.abs(left.height - right.height) < 0.001
+  );
+}
+
+function moveRegion(region: OcrRegion, deltaX: number, deltaY: number): OcrRegion {
+  return {
+    ...region,
+    x: clamp(region.x + deltaX, 0, 1 - region.width),
+    y: clamp(region.y + deltaY, 0, 1 - region.height),
+  };
+}
+
+function resizeRegion(
+  region: OcrRegion,
+  handle: ResizeHandle,
+  deltaX: number,
+  deltaY: number,
+): OcrRegion {
+  const right = region.x + region.width;
+  const bottom = region.y + region.height;
+
+  switch (handle) {
+    case 'nw': {
+      const nextX = clamp(region.x + deltaX, 0, right - MIN_OCR_REGION_WIDTH);
+      const nextY = clamp(region.y + deltaY, 0, bottom - MIN_OCR_REGION_HEIGHT);
+
+      return {
+        x: nextX,
+        y: nextY,
+        width: right - nextX,
+        height: bottom - nextY,
+      };
+    }
+    case 'ne': {
+      const nextRight = clamp(right + deltaX, region.x + MIN_OCR_REGION_WIDTH, 1);
+      const nextY = clamp(region.y + deltaY, 0, bottom - MIN_OCR_REGION_HEIGHT);
+
+      return {
+        x: region.x,
+        y: nextY,
+        width: nextRight - region.x,
+        height: bottom - nextY,
+      };
+    }
+    case 'sw': {
+      const nextX = clamp(region.x + deltaX, 0, right - MIN_OCR_REGION_WIDTH);
+      const nextBottom = clamp(bottom + deltaY, region.y + MIN_OCR_REGION_HEIGHT, 1);
+
+      return {
+        x: nextX,
+        y: region.y,
+        width: right - nextX,
+        height: nextBottom - region.y,
+      };
+    }
+    case 'se': {
+      const nextRight = clamp(right + deltaX, region.x + MIN_OCR_REGION_WIDTH, 1);
+      const nextBottom = clamp(bottom + deltaY, region.y + MIN_OCR_REGION_HEIGHT, 1);
+
+      return {
+        x: region.x,
+        y: region.y,
+        width: nextRight - region.x,
+        height: nextBottom - region.y,
+      };
+    }
+  }
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
