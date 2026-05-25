@@ -5,7 +5,7 @@ import NextImage from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Calculator, Camera, Check, LoaderCircle, Plus, X } from 'lucide-react';
+import { Calculator, Camera, Check, LoaderCircle, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MeterReadingsChart from '@/components/meter-readings-chart';
 import {
@@ -255,6 +255,18 @@ export default function SessionManager() {
   const closeCalculationModal = () => {
     setIsCalculationModalOpen(false);
     setSelectedCalculationSessionIds([]);
+  };
+
+  const deleteSession = (sessionId: string) => {
+    if (!window.confirm('Delete this session? This cannot be undone.')) {
+      return;
+    }
+
+    setSessions((current) => {
+      const next = current.filter((s) => s.id !== sessionId);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
   };
 
   const toggleCalculationSession = (sessionId: string) => {
@@ -629,26 +641,38 @@ export default function SessionManager() {
           ) : (
             <div className="mt-6 grid gap-4">
               {sessions.map((session) => (
-                <Link
+                <div
                   key={session.id}
-                  className="rounded-[1.5rem] border border-slate-200 bg-white px-5 py-5 transition-colors hover:border-slate-300 hover:bg-slate-50"
-                  href={`/sessions/${session.id}`}
+                  className="flex items-center rounded-[1.5rem] border border-slate-200 bg-white transition-colors hover:border-slate-300 hover:bg-slate-50"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-semibold text-slate-900">
-                        {formatSessionDate(session.createdAt)}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {session.readings.length} meter reading
-                        {session.readings.length === 1 ? '' : 's'}
-                      </p>
+                  <Link
+                    className="flex-1 px-5 py-5"
+                    href={`/sessions/${session.id}`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-lg font-semibold text-slate-900">
+                          {formatSessionDate(session.createdAt)}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {session.readings.length} meter reading
+                          {session.readings.length === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
+                        View session
+                      </span>
                     </div>
-                    <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
-                      View session
-                    </span>
-                  </div>
-                </Link>
+                  </Link>
+                  <button
+                    className="mr-4 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    onClick={() => deleteSession(session.id)}
+                    title="Delete session"
+                    type="button"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -750,15 +774,19 @@ export default function SessionManager() {
                     <label className="field-label" htmlFor="owner-name">
                       Owner name
                     </label>
-                    <input
+                    <select
                       className="field-input"
                       id="owner-name"
                       onChange={(event) =>
                         updateCaptureDraft({ ownerName: event.target.value })
                       }
-                      placeholder="Enter meter owner name"
                       value={captureDraft.ownerName}
-                    />
+                    >
+                      <option value="">Select meter owner</option>
+                      {['1A', '1B', '2A', '2B', '3A', '3B', '4', '5', '6', '7', 'MM'].map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="flex items-center gap-3">

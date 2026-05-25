@@ -8,6 +8,7 @@ import {
   STORAGE_KEY,
   formatSessionDate,
   sortSessions,
+  type MeterReading,
   type MeterSession,
 } from '@/lib/meter-ops';
 
@@ -38,6 +39,62 @@ export default function SessionDetail({ sessionId }: SessionDetailProps) {
       setIsLoaded(true);
     }
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!isLoaded || !session) return;
+
+    const storedValue = window.localStorage.getItem(STORAGE_KEY);
+    let allSessions: MeterSession[] = [];
+
+    try {
+      allSessions = storedValue ? (JSON.parse(storedValue) as MeterSession[]) : [];
+    } catch {
+      allSessions = [];
+    }
+
+    const nextSessions = allSessions.map((s) => (s.id === session.id ? session : s));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSessions));
+  }, [session, isLoaded]);
+
+  const updateReading = (
+    readingId: string,
+    changes: { ownerName: string; reading: number; isMotherMeter: boolean },
+  ) => {
+    setSession((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        readings: current.readings.map((r) => {
+          if (r.id !== readingId) return r;
+          const { isMotherMeter, ...rest } = { ...r, ...changes };
+          return isMotherMeter ? { ...rest, isMotherMeter: true } : rest;
+        }),
+      };
+    });
+  };
+
+  const deleteReading = (readingId: string) => {
+    setSession((current) => {
+      if (!current) return current;
+      return { ...current, readings: current.readings.filter((r) => r.id !== readingId) };
+    });
+  };
+
+  const addReading = (ownerName: string, reading: number, isMotherMeter: boolean) => {
+    setSession((current) => {
+      if (!current) return current;
+      const alreadyHasMotherMeter = current.readings.some((r) => r.isMotherMeter);
+      const newReading: MeterReading = {
+        id: crypto.randomUUID(),
+        ownerName,
+        reading,
+        capturedAt: new Date().toISOString(),
+        ocrText: '',
+        ...(isMotherMeter && !alreadyHasMotherMeter && { isMotherMeter: true }),
+      };
+      return { ...current, readings: [...current.readings, newReading] };
+    });
+  };
 
   return (
     <main className="app-shell">
@@ -73,7 +130,12 @@ export default function SessionDetail({ sessionId }: SessionDetailProps) {
             </section>
 
             <section className="surface-card rounded-[1.75rem] p-4 sm:p-6">
-              <SessionTable session={session} />
+              <SessionTable
+                session={session}
+                onAddReading={addReading}
+                onDeleteReading={deleteReading}
+                onUpdateReading={updateReading}
+              />
             </section>
           </>
         ) : (
@@ -81,7 +143,7 @@ export default function SessionDetail({ sessionId }: SessionDetailProps) {
             <h2 className="text-xl font-semibold text-slate-900">Session not found</h2>
             <p className="mt-2 max-w-xl text-slate-600">
               The saved session is missing from local storage. Which is not ideal, but at least
-              it’s honest.
+              it's honest.
             </p>
           </section>
         )}
