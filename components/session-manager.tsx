@@ -11,7 +11,7 @@ import {
   OCR_REGION,
   STORAGE_KEY,
   cleanOcrText,
-  extractReadingValue,
+  extractReadingCandidate,
   formatSessionDate,
   sanitizeReadingInput,
   sortSessions,
@@ -164,28 +164,60 @@ export default function SessionManager() {
     setOcrProgress(6);
 
     try {
-      const croppedImage = await cropSelectedRegion(file, region);
+      const ocrTargets = await prepareOcrTargets(file, region);
       const { createWorker, PSM } = await import('tesseract.js');
       const worker = await createWorker('eng', undefined, {
         logger: (message) => {
-          if (
-            requestId === ocrRequestIdRef.current &&
-            message.status === 'recognizing text' &&
-            typeof message.progress === 'number'
-          ) {
-            setOcrProgress(Math.round(message.progress * 100));
+          if (requestId !== ocrRequestIdRef.current) {
+            return;
+          }
+
+          if (message.status === 'recognizing text' && typeof message.progress === 'number') {
+            const progressPerTarget = 94 / ocrTargets.length;
+            const activeTargetIndex = Math.min(activeOcrTargetIndex, ocrTargets.length - 1);
+            const nextProgress =
+              6 + activeTargetIndex * progressPerTarget + message.progress * progressPerTarget;
+
+            setOcrProgress(Math.min(100, Math.round(nextProgress)));
           }
         },
       });
+      let activeOcrTargetIndex = 0;
       let result;
 
       try {
         await worker.setParameters({
           preserve_interword_spaces: '0',
-          tessedit_char_whitelist: '0123456789.',
-          tessedit_pageseg_mode: PSM.SINGLE_LINE,
+          tessedit_char_whitelist: '0123456789.:',
+          tessedit_pageseg_mode: PSM.SINGLE_WORD,
         });
-        result = await worker.recognize(croppedImage);
+
+        const attempts = [];
+
+        for (const [index, ocrTarget] of ocrTargets.entries()) {
+          activeOcrTargetIndex = index;
+
+          const attemptResult = await worker.recognize(ocrTarget.image);
+          const ocrText = cleanOcrText(attemptResult.data.text);
+          const extractedReading = extractReadingCandidate(ocrText);
+
+          attempts.push({
+            extractedReading,
+            ocrText,
+            priority: ocrTarget.priority,
+          });
+        }
+
+        result = attempts.sort((left, right) => {
+          const leftScore = (left.extractedReading?.score ?? 0) + left.priority;
+          const rightScore = (right.extractedReading?.score ?? 0) + right.priority;
+
+          if (rightScore === leftScore) {
+            return right.ocrText.length - left.ocrText.length;
+          }
+
+          return rightScore - leftScore;
+        })[0];
       } finally {
         await worker.terminate();
       }
@@ -194,10 +226,8 @@ export default function SessionManager() {
         return;
       }
 
-      const ocrText = cleanOcrText(result.data.text);
-      const suggestedReading = sanitizeReadingInput(
-        extractReadingValue(ocrText)?.toString() ?? '',
-      );
+      const ocrText = result?.ocrText ?? '';
+      const suggestedReading = result?.extractedReading?.normalizedText ?? '';
 
       setCaptureDraft((current) => {
         if (!current || current.file !== file) {
@@ -669,21 +699,26 @@ async function cropSelectedRegion(file: File, region: OcrRegion) {
       height,
     );
 
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((value) => {
-        if (value) {
-          resolve(value);
-          return;
-        }
-
-        reject(new Error('Could not create OCR blob.'));
-      }, file.type || 'image/jpeg');
-    });
-
-    return blob;
+    return canvas;
   } finally {
     URL.revokeObjectURL(image.src);
   }
+}
+
+async function prepareOcrTargets(file: File, region: OcrRegion) {
+  const croppedCanvas = await cropSelectedRegion(file, region);
+  const enhancedCanvas = enhanceOcrCanvas(croppedCanvas);
+
+  return [
+    {
+      image: await canvasToBlob(enhancedCanvas, 'image/png'),
+      priority: 20,
+    },
+    {
+      image: await canvasToBlob(croppedCanvas, file.type || 'image/jpeg'),
+      priority: 0,
+    },
+  ];
 }
 
 async function loadImage(file: File) {
@@ -697,6 +732,19 @@ async function loadImage(file: File) {
       reject(new Error('Could not load the captured image.'));
     };
     image.src = objectUrl;
+  });
+}
+
+async function canvasToBlob(canvas: HTMLCanvasElement, type: string) {
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((value) => {
+      if (value) {
+        resolve(value);
+        return;
+      }
+
+      reject(new Error('Could not create OCR blob.'));
+    }, type);
   });
 }
 
@@ -794,4 +842,46 @@ function resizeRegion(
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function enhanceOcrCanvas(sourceCanvas: HTMLCanvasElement) {
+  const scale = 3;
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, sourceCanvas.width * scale);
+  canvas.height = Math.max(1, sourceCanvas.height * scale);
+
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    throw new Error('Could not create OCR enhancement context.');
+  }
+
+  context.imageSmoothingEnabled = false;
+  context.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
+
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  const { data } = imageData;
+  let luminanceTotal = 0;
+
+  for (let index = 0; index < data.length; index += 4) {
+    const luminance = data[index] * 0.2126 + data[index + 1] * 0.7152 + data[index + 2] * 0.0722;
+    luminanceTotal += luminance;
+  }
+
+  const averageLuminance = luminanceTotal / (data.length / 4 || 1);
+  const threshold = Math.max(110, Math.min(210, averageLuminance + 35));
+
+  for (let index = 0; index < data.length; index += 4) {
+    const luminance = data[index] * 0.2126 + data[index + 1] * 0.7152 + data[index + 2] * 0.0722;
+    const contrasted = clamp(Math.round((luminance - averageLuminance) * 2.8 + 128), 0, 255);
+    const value = contrasted >= threshold ? 255 : 0;
+
+    data[index] = value;
+    data[index + 1] = value;
+    data[index + 2] = value;
+    data[index + 3] = 255;
+  }
+
+  context.putImageData(imageData, 0, 0);
+  return canvas;
 }
