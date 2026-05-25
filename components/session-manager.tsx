@@ -5,7 +5,7 @@ import NextImage from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Camera, LoaderCircle, Plus } from 'lucide-react';
+import { Calculator, Camera, Check, LoaderCircle, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   OCR_REGION,
@@ -59,6 +59,8 @@ export default function SessionManager() {
   const [ocrProgress, setOcrProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [regionInteraction, setRegionInteraction] = useState<RegionInteraction | null>(null);
+  const [isCalculationModalOpen, setIsCalculationModalOpen] = useState(false);
+  const [selectedCalculationSessionIds, setSelectedCalculationSessionIds] = useState<string[]>([]);
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem(STORAGE_KEY);
@@ -155,6 +157,42 @@ export default function SessionManager() {
   const requestCapture = () => {
     setErrorMessage('');
     fileInputRef.current?.click();
+  };
+
+  const openCalculationModal = () => {
+    setSelectedCalculationSessionIds([]);
+    setIsCalculationModalOpen(true);
+  };
+
+  const closeCalculationModal = () => {
+    setIsCalculationModalOpen(false);
+    setSelectedCalculationSessionIds([]);
+  };
+
+  const toggleCalculationSession = (sessionId: string) => {
+    setSelectedCalculationSessionIds((current) => {
+      if (current.includes(sessionId)) {
+        return current.filter((id) => id !== sessionId);
+      }
+
+      if (current.length >= 2) {
+        return current;
+      }
+
+      return [...current, sessionId];
+    });
+  };
+
+  const viewCalculation = () => {
+    if (selectedCalculationSessionIds.length !== 2) {
+      return;
+    }
+
+    const [firstSessionId, secondSessionId] = selectedCalculationSessionIds;
+    closeCalculationModal();
+    router.push(
+      `/consumption?firstSessionId=${encodeURIComponent(firstSessionId)}&secondSessionId=${encodeURIComponent(secondSessionId)}`,
+    );
   };
 
   const runOcrForDraft = async (file: File, region: OcrRegion) => {
@@ -424,6 +462,15 @@ export default function SessionManager() {
                 <Plus className="h-4 w-4" />
                 Add Session
               </Button>
+              <Button
+                className="min-w-44"
+                disabled={!isLoaded || sessions.length < 2}
+                onClick={openCalculationModal}
+                variant="secondary"
+              >
+                <Calculator className="h-4 w-4" />
+                Calculate
+              </Button>
               <p className="text-sm text-slate-500">
                 {draftReadings.length > 0
                   ? `Current draft: ${draftReadings.length} reading${draftReadings.length === 1 ? '' : 's'}`
@@ -659,6 +706,84 @@ export default function SessionManager() {
                     <Button onClick={() => saveReading('continue')}>Continue</Button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {isCalculationModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+            <div className="surface-card max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] p-6 sm:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.14em] text-slate-500">
+                    Compare sessions
+                  </p>
+                  <h3 className="mt-2 text-2xl font-bold text-slate-900">
+                    Select exactly two sessions
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    Pick the older and newer meter snapshots you want to compare. The math part is
+                    doing very little improvisation.
+                  </p>
+                </div>
+                <Button onClick={closeCalculationModal} variant="ghost">
+                  <X className="h-4 w-4" />
+                  Close
+                </Button>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {sessions.map((session) => {
+                  const isSelected = selectedCalculationSessionIds.includes(session.id);
+                  const disableSelection =
+                    !isSelected && selectedCalculationSessionIds.length >= 2;
+
+                  return (
+                    <button
+                      key={session.id}
+                      className={`flex w-full items-center justify-between rounded-[1.35rem] border px-5 py-4 text-left transition-colors ${
+                        isSelected
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      } ${disableSelection ? 'cursor-not-allowed opacity-50' : ''}`}
+                      disabled={disableSelection}
+                      onClick={() => toggleCalculationSession(session.id)}
+                      type="button"
+                    >
+                      <div>
+                        <p className="text-base font-semibold text-slate-900">
+                          {formatSessionDate(session.createdAt)}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {session.readings.length} meter reading
+                          {session.readings.length === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex h-10 w-10 items-center justify-center rounded-full border ${
+                          isSelected
+                            ? 'border-blue-700 bg-blue-700 text-white'
+                            : 'border-slate-300 bg-white text-slate-400'
+                        }`}
+                      >
+                        <Check className="h-4 w-4" />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] bg-slate-100 px-4 py-3">
+                <p className="text-sm text-slate-600">
+                  {selectedCalculationSessionIds.length} of 2 sessions selected
+                </p>
+                <Button
+                  disabled={selectedCalculationSessionIds.length !== 2}
+                  onClick={viewCalculation}
+                >
+                  Calculate
+                </Button>
               </div>
             </div>
           </div>
