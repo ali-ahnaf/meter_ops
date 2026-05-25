@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Calculator, Camera, Check, LoaderCircle, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import MeterReadingsChart from '@/components/meter-readings-chart';
 import {
   OCR_REGION,
   STORAGE_KEY,
@@ -513,6 +514,8 @@ export default function SessionManager() {
             {errorMessage}
           </section>
         ) : null}
+
+        {sessions.length >= 2 ? <MeterReadingsChart sessions={sessions} /> : null}
 
         <section className="surface-card rounded-[1.75rem] p-6 sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
