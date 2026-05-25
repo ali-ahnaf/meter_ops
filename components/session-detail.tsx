@@ -58,7 +58,7 @@ export default function SessionDetail({ sessionId }: SessionDetailProps) {
 
   const updateReading = (
     readingId: string,
-    changes: { ownerName: string; reading: number; isMotherMeter: boolean },
+    changes: { ownerName: string; reading: number; isMotherMeter: boolean; capturedAt: string },
   ) => {
     setSession((current) => {
       if (!current) return current;

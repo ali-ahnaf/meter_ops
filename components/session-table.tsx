@@ -17,13 +17,14 @@ type RowDraft = {
   ownerName: string;
   readingInput: string;
   isMotherMeter: boolean;
+  capturedAt: string;
 };
 
-const emptyDraft = (): RowDraft => ({ ownerName: '', readingInput: '', isMotherMeter: false });
+const emptyDraft = (): RowDraft => ({ ownerName: '', readingInput: '', isMotherMeter: false, capturedAt: new Date().toISOString() });
 
 type SessionTableProps = {
   session: MeterSession;
-  onUpdateReading?: (readingId: string, changes: { ownerName: string; reading: number; isMotherMeter: boolean }) => void;
+  onUpdateReading?: (readingId: string, changes: { ownerName: string; reading: number; isMotherMeter: boolean; capturedAt: string }) => void;
   onDeleteReading?: (readingId: string) => void;
   onAddReading?: (ownerName: string, reading: number, isMotherMeter: boolean) => void;
 };
@@ -48,6 +49,7 @@ export default function SessionTable({
       ownerName: reading.ownerName,
       readingInput: String(reading.reading),
       isMotherMeter: reading.isMotherMeter ?? false,
+      capturedAt: reading.capturedAt,
     });
   };
 
@@ -64,6 +66,7 @@ export default function SessionTable({
       ownerName: editDraft.ownerName.trim(),
       reading: readingValue,
       isMotherMeter: editDraft.isMotherMeter,
+      capturedAt: editDraft.capturedAt,
     });
     cancelEdit();
   };
@@ -94,7 +97,6 @@ export default function SessionTable({
             <tr>
               <th>Owner</th>
               <th>Reading</th>
-              <th>Detected text</th>
               <th>Captured</th>
               {isEditable ? <th /> : null}
             </tr>
@@ -137,8 +139,16 @@ export default function SessionTable({
                       }
                     />
                   </td>
-                  <td className="text-sm text-slate-400">—</td>
-                  <td className="text-sm text-slate-400">—</td>
+                  <td>
+                    <input
+                      className="field-input py-1 text-sm"
+                      type="datetime-local"
+                      value={editDraft.capturedAt.slice(0, 16)}
+                      onChange={(e) =>
+                        setEditDraft((d) => ({ ...d, capturedAt: e.target.value ? new Date(e.target.value).toISOString() : d.capturedAt }))
+                      }
+                    />
+                  </td>
                   <td>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -169,9 +179,6 @@ export default function SessionTable({
                     ) : null}
                   </td>
                   <td>{formatReading(reading.reading)}</td>
-                  <td className="max-w-sm whitespace-pre-wrap text-sm text-slate-600">
-                    {reading.ocrText || 'No text detected'}
-                  </td>
                   <td className="text-sm text-slate-600">{formatSessionDate(reading.capturedAt)}</td>
                   {isEditable ? (
                     <td>
@@ -241,7 +248,6 @@ export default function SessionTable({
                     }
                   />
                 </td>
-                <td className="text-sm text-slate-400">—</td>
                 <td className="text-sm text-slate-400">Now</td>
                 <td>
                   <div className="flex items-center gap-1.5">
