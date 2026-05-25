@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Check, Pencil, X } from 'lucide-react';
 import SessionTable from '@/components/session-table';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,8 @@ type SessionDetailProps = {
 export default function SessionDetail({ sessionId }: SessionDetailProps) {
   const [session, setSession] = useState<MeterSession | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [dateDraft, setDateDraft] = useState('');
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem(STORAGE_KEY);
@@ -80,6 +83,27 @@ export default function SessionDetail({ sessionId }: SessionDetailProps) {
     });
   };
 
+  const startEditDate = () => {
+    if (!session) return;
+    setDateDraft(session.createdAt.slice(0, 16));
+    setIsEditingDate(true);
+  };
+
+  const cancelEditDate = () => {
+    setIsEditingDate(false);
+    setDateDraft('');
+  };
+
+  const saveDate = () => {
+    if (!dateDraft) return;
+    setSession((current) => {
+      if (!current) return current;
+      return { ...current, createdAt: new Date(dateDraft).toISOString() };
+    });
+    setIsEditingDate(false);
+    setDateDraft('');
+  };
+
   const addReading = (ownerName: string, reading: number, isMotherMeter: boolean) => {
     setSession((current) => {
       if (!current) return current;
@@ -119,9 +143,51 @@ export default function SessionDetail({ sessionId }: SessionDetailProps) {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-slate-500">Created</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">
-                    {formatSessionDate(session.createdAt)}
-                  </p>
+                  {isEditingDate ? (
+                    <div className="mt-1 flex items-center gap-2">
+                      <input
+                        autoFocus
+                        className="field-input py-1 text-sm"
+                        type="datetime-local"
+                        value={dateDraft}
+                        onChange={(e) => setDateDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveDate();
+                          if (e.key === 'Escape') cancelEditDate();
+                        }}
+                      />
+                      <button
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-700 text-white hover:bg-blue-800"
+                        title="Save date"
+                        type="button"
+                        onClick={saveDate}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        title="Cancel"
+                        type="button"
+                        onClick={cancelEditDate}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="text-lg font-semibold text-slate-900">
+                        {formatSessionDate(session.createdAt)}
+                      </p>
+                      <button
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        title="Edit session date"
+                        type="button"
+                        onClick={startEditDate}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
                   {session.readings.length} reading{session.readings.length === 1 ? '' : 's'}
