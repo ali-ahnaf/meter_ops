@@ -30,6 +30,7 @@ type CaptureDraft = {
   previewUrl: string;
   region: OcrRegion;
   readingInput: string;
+  isMotherMeter: boolean;
 };
 
 type ResizeHandle = 'ne' | 'nw' | 'se' | 'sw';
@@ -334,6 +335,7 @@ export default function SessionManager() {
       previewUrl,
       region,
       readingInput: '',
+      isMotherMeter: false,
     });
     event.target.value = '';
     await runOcrForDraft(file, region);
@@ -410,6 +412,7 @@ export default function SessionManager() {
       ocrText: captureDraft.ocrText,
       capturedAt: new Date().toISOString(),
       imageName: captureDraft.fileName,
+      ...(captureDraft.isMotherMeter && { isMotherMeter: true }),
     };
 
     const nextDraftReadings = [...draftReadings, nextReading];
@@ -665,6 +668,37 @@ export default function SessionManager() {
                       placeholder="Enter meter owner name"
                       value={captureDraft.ownerName}
                     />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      checked={captureDraft.isMotherMeter}
+                      className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={
+                        !captureDraft.isMotherMeter &&
+                        draftReadings.some((r) => r.isMotherMeter)
+                      }
+                      id="is-mother-meter"
+                      onChange={(event) =>
+                        updateCaptureDraft({ isMotherMeter: event.target.checked })
+                      }
+                      type="checkbox"
+                    />
+                    <label
+                      className={`cursor-pointer select-none text-sm font-medium text-slate-700 ${
+                        !captureDraft.isMotherMeter && draftReadings.some((r) => r.isMotherMeter)
+                          ? 'cursor-not-allowed opacity-50'
+                          : ''
+                      }`}
+                      htmlFor="is-mother-meter"
+                    >
+                      Mother meter
+                      {!captureDraft.isMotherMeter && draftReadings.some((r) => r.isMotherMeter) ? (
+                        <span className="ml-1.5 text-xs font-normal text-slate-500">
+                          (already set for this session)
+                        </span>
+                      ) : null}
+                    </label>
                   </div>
 
                   <div>

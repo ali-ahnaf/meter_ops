@@ -2,6 +2,7 @@ import { formatReading, type MeterReading, type MeterSession } from '@/lib/meter
 
 export const RATE_PER_KWH = 10.5;
 export const VAT_RATE = 0.05;
+export const TRANSFORMER_LOSS_RATE = 0.15;
 
 export type ConsumptionRow = {
   ownerName: string;
@@ -9,6 +10,9 @@ export type ConsumptionRow = {
   newReading: MeterReading;
   consumption: number;
   cost: number;
+  isMotherMeter?: boolean;
+  /** Raw reading diff before subtracting normal meter consumptions. Only set for mother meter rows. */
+  rawConsumption?: number;
 };
 
 export type ConsumptionComparison = {
@@ -27,7 +31,8 @@ export function buildConsumptionComparison(
   const olderReadings = createOwnerIndex(olderSession.readings);
   const newerReadings = createOwnerIndex(newerSession.readings);
   const ownerKeys = new Set([...olderReadings.keys(), ...newerReadings.keys()]);
-  const rows: ConsumptionRow[] = [];
+  const normalRows: ConsumptionRow[] = [];
+  let motherRow: ConsumptionRow | null = null;
   const missingFromOlder: string[] = [];
   const missingFromNewer: string[] = [];
 
@@ -49,18 +54,42 @@ export function buildConsumptionComparison(
       continue;
     }
 
-    const consumption = newerReading.reading - olderReading.reading;
+    const rawConsumption = newerReading.reading - olderReading.reading;
 
-    rows.push({
-      ownerName: newerReading.ownerName,
-      oldReading: olderReading,
-      newReading: newerReading,
-      consumption,
-      cost: calculateCost(consumption),
-    });
+    if (newerReading.isMotherMeter || olderReading.isMotherMeter) {
+      // Placeholder — net consumption computed after normal meters are summed
+      motherRow = {
+        ownerName: newerReading.ownerName,
+        oldReading: olderReading,
+        newReading: newerReading,
+        consumption: rawConsumption,
+        cost: 0,
+        isMotherMeter: true,
+        rawConsumption,
+      };
+    } else {
+      normalRows.push({
+        ownerName: newerReading.ownerName,
+        oldReading: olderReading,
+        newReading: newerReading,
+        consumption: rawConsumption,
+        cost: calculateCost(rawConsumption),
+      });
+    }
   }
 
-  rows.sort((left, right) => left.ownerName.localeCompare(right.ownerName));
+  if (motherRow) {
+    const normalTotal = normalRows.reduce((sum, row) => sum + row.consumption, 0);
+    const netConsumption = motherRow.rawConsumption! - normalTotal;
+    motherRow.consumption = netConsumption;
+    motherRow.cost = calculateCost(netConsumption) * (1 + TRANSFORMER_LOSS_RATE);
+  }
+
+  const rows: ConsumptionRow[] = [
+    ...normalRows.sort((left, right) => left.ownerName.localeCompare(right.ownerName)),
+    ...(motherRow ? [motherRow] : []),
+  ];
+
   missingFromOlder.sort((left, right) => left.localeCompare(right));
   missingFromNewer.sort((left, right) => left.localeCompare(right));
 

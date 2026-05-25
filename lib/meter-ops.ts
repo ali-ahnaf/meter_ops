@@ -5,6 +5,7 @@ export type MeterReading = {
   ocrText: string;
   capturedAt: string;
   imageName?: string;
+  isMotherMeter?: boolean;
 };
 
 export type MeterSession = {

@@ -8,6 +8,7 @@ import {
   buildConsumptionComparison,
   formatCost,
   formatReadingWithUnit,
+  TRANSFORMER_LOSS_RATE,
 } from '@/lib/consumption';
 import {
   STORAGE_KEY,
@@ -73,8 +74,9 @@ export default function ConsumptionReport({
                 Session comparison
               </h1>
               <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-                Consumption is calculated as newer reading minus older reading. Cost uses base
-                charge `consumption × 10.50`, then adds 5% VAT. Bills do love a second act.
+                Normal meter consumption: newer reading minus older reading. Cost: consumption ×
+                10.50 + 5% VAT. Mother meter net consumption: raw diff minus sum of all normal
+                meter consumptions. Mother meter cost adds an extra 15% transformer loss.
               </p>
             </div>
 
@@ -150,12 +152,36 @@ export default function ConsumptionReport({
                     </thead>
                     <tbody>
                       {comparison.rows.map((row) => (
-                        <tr key={row.ownerName}>
-                          <td className="font-semibold text-slate-900">{row.ownerName}</td>
+                        <tr
+                          key={row.ownerName}
+                          className={row.isMotherMeter ? 'bg-violet-50' : undefined}
+                        >
+                          <td className="font-semibold text-slate-900">
+                            {row.ownerName}
+                            {row.isMotherMeter && (
+                              <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
+                                Mother
+                              </span>
+                            )}
+                          </td>
                           <td>{formatReadingWithUnit(row.oldReading.reading)}</td>
                           <td>{formatReadingWithUnit(row.newReading.reading)}</td>
-                          <td>{formatReadingWithUnit(row.consumption)}</td>
-                          <td>{formatCost(row.cost)}</td>
+                          <td>
+                            {formatReadingWithUnit(row.consumption)}
+                            {row.isMotherMeter && row.rawConsumption !== undefined && (
+                              <span className="ml-1 text-xs text-slate-500">
+                                (raw: {formatReadingWithUnit(row.rawConsumption)})
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {formatCost(row.cost)}
+                            {row.isMotherMeter && (
+                              <span className="ml-1 text-xs text-slate-500">
+                                (+{TRANSFORMER_LOSS_RATE * 100}% loss)
+                              </span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
