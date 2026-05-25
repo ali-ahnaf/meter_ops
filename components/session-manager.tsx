@@ -48,9 +48,17 @@ type RegionInteraction = {
 const MIN_OCR_REGION_WIDTH = 0.18;
 const MIN_OCR_REGION_HEIGHT = 0.12;
 
+const CAMERA_GUIDE_LEFT = 0.06;
+const CAMERA_GUIDE_TOP = 0.36;
+const CAMERA_GUIDE_WIDTH = 0.88;
+const CAMERA_GUIDE_HEIGHT = 0.28;
+const CAMERA_OCR_REGION: OcrRegion = { x: 0.02, y: 0.10, width: 0.96, height: 0.80 };
+
 export default function SessionManager() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const previewFrameRef = useRef<HTMLDivElement | null>(null);
   const ocrRequestIdRef = useRef(0);
   const [sessions, setSessions] = useState<MeterSession[]>([]);
@@ -63,6 +71,7 @@ export default function SessionManager() {
   const [regionInteraction, setRegionInteraction] = useState<RegionInteraction | null>(null);
   const [isCalculationModalOpen, setIsCalculationModalOpen] = useState(false);
   const [selectedCalculationSessionIds, setSelectedCalculationSessionIds] = useState<string[]>([]);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem(STORAGE_KEY);
@@ -156,9 +165,86 @@ export default function SessionManager() {
     };
   }, [regionInteraction]);
 
-  const requestCapture = () => {
+  useEffect(() => {
+    if (isCameraOpen && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isCameraOpen]);
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  const requestCapture = async () => {
     setErrorMessage('');
-    fileInputRef.current?.click();
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      });
+      streamRef.current = stream;
+      setIsCameraOpen(true);
+    } catch {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const closeCameraView = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setIsCameraOpen(false);
+  };
+
+  const captureFromCamera = () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) return;
+
+    const displayW = video.clientWidth;
+    const displayH = video.clientHeight;
+    const videoW = video.videoWidth;
+    const videoH = video.videoHeight;
+
+    const scale = Math.max(displayW / videoW, displayH / videoH);
+    const scaledW = videoW * scale;
+    const scaledH = videoH * scale;
+    const offsetX = (displayW - scaledW) / 2;
+    const offsetY = (displayH - scaledH) / 2;
+
+    const guideLeft = displayW * CAMERA_GUIDE_LEFT;
+    const guideTop = displayH * CAMERA_GUIDE_TOP;
+    const guideW = displayW * CAMERA_GUIDE_WIDTH;
+    const guideH = displayH * CAMERA_GUIDE_HEIGHT;
+
+    const srcX = (guideLeft - offsetX) / scale;
+    const srcY = (guideTop - offsetY) / scale;
+    const srcW = guideW / scale;
+    const srcH = guideH / scale;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(srcW));
+    canvas.height = Math.max(1, Math.round(srcH));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `meter_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        closeCameraView();
+        void handleCapturedFile(file, CAMERA_OCR_REGION);
+      },
+      'image/jpeg',
+      0.92,
+    );
   };
 
   const openCalculationModal = () => {
@@ -316,15 +402,9 @@ export default function SessionManager() {
     }
   };
 
-  const handleFileSelection = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
+  const handleCapturedFile = async (file: File, initialRegion?: OcrRegion) => {
     const previewUrl = URL.createObjectURL(file);
-    const region = cloneRegion(OCR_REGION);
+    const region = cloneRegion(initialRegion ?? OCR_REGION);
     setErrorMessage('');
     setCaptureDraft({
       file,
@@ -338,8 +418,16 @@ export default function SessionManager() {
       readingInput: '',
       isMotherMeter: false,
     });
-    event.target.value = '';
     await runOcrForDraft(file, region);
+  };
+
+  const handleFileSelection = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    event.target.value = '';
+    await handleCapturedFile(file);
   };
 
   const updateCaptureDraft = (changes: Partial<CaptureDraft>) => {
@@ -826,6 +914,87 @@ export default function SessionManager() {
           </div>
         ) : null}
       </div>
+
+      {isCameraOpen ? (
+        <div className="fixed inset-0 z-[60] bg-black">
+          <video
+            ref={videoRef}
+            autoPlay
+            className="h-full w-full object-cover"
+            muted
+            playsInline
+          />
+
+          <div className="pointer-events-none absolute inset-0">
+            {/* Shade above guide */}
+            <div
+              className="absolute inset-x-0 top-0 bg-black/60"
+              style={{ height: `${CAMERA_GUIDE_TOP * 100}%` }}
+            />
+            {/* Shade below guide */}
+            <div
+              className="absolute inset-x-0 bottom-0 bg-black/60"
+              style={{ top: `${(CAMERA_GUIDE_TOP + CAMERA_GUIDE_HEIGHT) * 100}%` }}
+            />
+            {/* Shade left of guide */}
+            <div
+              className="absolute bg-black/60"
+              style={{
+                top: `${CAMERA_GUIDE_TOP * 100}%`,
+                left: 0,
+                width: `${CAMERA_GUIDE_LEFT * 100}%`,
+                height: `${CAMERA_GUIDE_HEIGHT * 100}%`,
+              }}
+            />
+            {/* Shade right of guide */}
+            <div
+              className="absolute bg-black/60"
+              style={{
+                top: `${CAMERA_GUIDE_TOP * 100}%`,
+                left: `${(CAMERA_GUIDE_LEFT + CAMERA_GUIDE_WIDTH) * 100}%`,
+                right: 0,
+                height: `${CAMERA_GUIDE_HEIGHT * 100}%`,
+              }}
+            />
+            {/* Guide border */}
+            <div
+              className="absolute rounded-lg border-2 border-white/80"
+              style={{
+                top: `${CAMERA_GUIDE_TOP * 100}%`,
+                left: `${CAMERA_GUIDE_LEFT * 100}%`,
+                width: `${CAMERA_GUIDE_WIDTH * 100}%`,
+                height: `${CAMERA_GUIDE_HEIGHT * 100}%`,
+              }}
+            />
+            {/* Label above guide */}
+            <p
+              className="absolute text-center text-sm font-medium text-white/80"
+              style={{
+                top: `calc(${CAMERA_GUIDE_TOP * 100}% - 2rem)`,
+                left: `${CAMERA_GUIDE_LEFT * 100}%`,
+                width: `${CAMERA_GUIDE_WIDTH * 100}%`,
+              }}
+            >
+              Fit the meter display within the frame
+            </p>
+          </div>
+
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-16 pb-14 pt-8">
+            <button
+              className="text-sm text-white/70 hover:text-white"
+              onClick={closeCameraView}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              className="h-16 w-16 rounded-full border-4 border-white/40 bg-white/90 transition-transform active:scale-95"
+              onClick={captureFromCamera}
+              type="button"
+            />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
