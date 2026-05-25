@@ -13,6 +13,7 @@ import {
   cleanOcrText,
   extractReadingValue,
   formatSessionDate,
+  sanitizeReadingInput,
   sortSessions,
   type MeterReading,
   type MeterSession,
@@ -164,8 +165,8 @@ export default function SessionManager() {
 
     try {
       const croppedImage = await cropSelectedRegion(file, region);
-      const { recognize } = await import('tesseract.js');
-      const result = await recognize(croppedImage, 'eng', {
+      const { createWorker, PSM } = await import('tesseract.js');
+      const worker = await createWorker('eng', undefined, {
         logger: (message) => {
           if (
             requestId === ocrRequestIdRef.current &&
@@ -176,13 +177,27 @@ export default function SessionManager() {
           }
         },
       });
+      let result;
+
+      try {
+        await worker.setParameters({
+          preserve_interword_spaces: '0',
+          tessedit_char_whitelist: '0123456789.',
+          tessedit_pageseg_mode: PSM.SINGLE_LINE,
+        });
+        result = await worker.recognize(croppedImage);
+      } finally {
+        await worker.terminate();
+      }
 
       if (requestId !== ocrRequestIdRef.current) {
         return;
       }
 
       const ocrText = cleanOcrText(result.data.text);
-      const suggestedReading = extractReadingValue(ocrText)?.toString() ?? '';
+      const suggestedReading = sanitizeReadingInput(
+        extractReadingValue(ocrText)?.toString() ?? '',
+      );
 
       setCaptureDraft((current) => {
         if (!current || current.file !== file) {
@@ -584,7 +599,9 @@ export default function SessionManager() {
                       id="meter-reading"
                       inputMode="decimal"
                       onChange={(event) =>
-                        updateCaptureDraft({ readingInput: event.target.value })
+                        updateCaptureDraft({
+                          readingInput: sanitizeReadingInput(event.target.value),
+                        })
                       }
                       placeholder="Detected reading"
                       value={captureDraft.readingInput}

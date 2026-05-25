@@ -22,3 +22,9 @@
 - Session history is persisted in browser `localStorage`
 - OCR runs in the browser and must always allow manual correction before committing a reading
 - Calculations should stay deterministic and easy to inspect; avoid hiding billing logic inside UI components
+
+## Git workflow
+
+- After completing changes, stage the intended repo updates with `git add -A`, create a commit, and push the current branch to `origin`
+- Run relevant validation before committing when practical, and never claim tests passed if they were not run
+- Do not rewrite history, amend commits, or force-push unless explicitly requested

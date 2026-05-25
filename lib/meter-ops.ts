@@ -38,9 +38,25 @@ export function sortSessions(sessions: MeterSession[]) {
 
 export function cleanOcrText(text: string) {
   return text
+    .replace(/,/g, '.')
+    .replace(/[^\d.\s\r\n]+/g, ' ')
     .replace(/[^\S\r\n]+/g, ' ')
+    .replace(/ *\n+ */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+export function sanitizeReadingInput(value: string) {
+  const normalized = value.replace(/,/g, '.').replace(/[^\d.]+/g, '');
+  const decimalIndex = normalized.indexOf('.');
+
+  if (decimalIndex === -1) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, decimalIndex + 1)}${normalized
+    .slice(decimalIndex + 1)
+    .replace(/\./g, '')}`;
 }
 
 export function extractReadingValue(text: string) {
