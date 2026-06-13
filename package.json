@@ -7,7 +7,9 @@
   "description": "Dystopian meter reading and electricity bill calculator.",
   "scripts": {
     "build": "next build",
+    "postbuild": "node scripts/copy-static.js",
     "dev": "next dev -p 3033",
+    "start:prod": "cd .next/standalone && PORT=3033 node server.js",
     "lint": "next lint",
     "next": "next",
     "start": "next start"
