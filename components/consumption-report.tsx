@@ -11,11 +11,11 @@ import {
   TRANSFORMER_LOSS_RATE,
 } from '@/lib/consumption';
 import {
-  STORAGE_KEY,
   formatSessionDate,
   sortSessions,
   type MeterSession,
 } from '@/lib/meter-ops';
+import { getSessionsAction } from '@/app/actions';
 
 type ConsumptionReportProps = {
   firstSessionId: string | null;
@@ -30,22 +30,18 @@ export default function ConsumptionReport({
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const storedValue = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!storedValue) {
-      setIsLoaded(true);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(storedValue) as MeterSession[];
-      setSessions(sortSessions(Array.isArray(parsed) ? parsed : []));
-    } catch (error) {
-      console.error('Failed to read saved meter sessions:', error);
-      setSessions([]);
-    } finally {
-      setIsLoaded(true);
-    }
+    const loadSessions = async () => {
+      try {
+        const parsed = await getSessionsAction();
+        setSessions(sortSessions(Array.isArray(parsed) ? parsed : []));
+      } catch (error) {
+        console.error('Failed to read saved meter sessions:', error);
+        setSessions([]);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    loadSessions();
   }, []);
 
   const comparison = useMemo(() => {
@@ -74,9 +70,11 @@ export default function ConsumptionReport({
                 Session comparison
               </h1>
               <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-                Normal meter consumption: newer reading minus older reading. Cost: consumption ×
-                10.50 + 5% VAT. Mother meter net consumption: raw diff minus sum of all normal
-                meter consumptions. Mother meter cost adds an extra 15% transformer loss.
+                Normal meter consumption: newer reading minus older reading. Cost: progressive slab
+                tariff (lifeline 4.63 within 50 units, otherwise stepped 5.26 → 17.25) + 5% VAT.
+                Mother meter net consumption: raw diff minus sum of all normal meter consumptions.
+                Mother meter cost uses the flat 10.50 rate + 5% VAT plus an extra 15% transformer
+                loss.
               </p>
             </div>
 

@@ -14,7 +14,6 @@ export type MeterSession = {
   readings: MeterReading[];
 };
 
-export const STORAGE_KEY = 'meter_ops_sessions_v2';
 
 export type OcrRegion = {
   x: number;

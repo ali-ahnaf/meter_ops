@@ -7,7 +7,7 @@
   "description": "Dystopian meter reading and electricity bill calculator.",
   "scripts": {
     "build": "next build",
-    "dev": "next dev -p 3000",
+    "dev": "next dev -p 3033",
     "lint": "next lint",
     "next": "next",
     "start": "next start"

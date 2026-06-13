@@ -1,0 +1,170 @@
+[
+  {
+    "id": "3285da65-874b-47b7-9b25-493702a44ad8",
+    "createdAt": "2026-05-26T06:00:00.000Z",
+    "readings": [
+      {
+        "id": "b908e457-f1c5-4b66-89ee-a97c92342c32",
+        "ownerName": "MM",
+        "reading": 13760,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z",
+        "isMotherMeter": true
+      },
+      {
+        "id": "1e24a163-e927-4114-97bd-9bd6bcfdcedb",
+        "ownerName": "1A",
+        "reading": 29006,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      },
+      {
+        "id": "3a24f089-dbfb-45ca-95c2-639200bf179a",
+        "ownerName": "1B",
+        "reading": 26802,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      },
+      {
+        "id": "e26b0982-b53b-45a3-9289-dd3abc925e78",
+        "ownerName": "2A",
+        "reading": 16668,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      },
+      {
+        "id": "d6e97d23-5660-4416-8326-5f4a186a443f",
+        "ownerName": "2B",
+        "reading": 19996,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      },
+      {
+        "id": "62ac2e9a-4f23-41de-a4c1-4fce0020c06b",
+        "ownerName": "3A",
+        "reading": 19354,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      },
+      {
+        "id": "56dd51e8-49b4-48ef-9ec8-3a3291b31b20",
+        "ownerName": "3B",
+        "reading": 37749,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      },
+      {
+        "id": "a1577317-9dab-4d81-9c66-9cd0a6beaa86",
+        "ownerName": "4",
+        "reading": 25262,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      },
+      {
+        "id": "28a8c658-9722-4b06-a47d-25787e197f8a",
+        "ownerName": "5",
+        "reading": 84806,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      },
+      {
+        "id": "1faf62bd-a25e-42f8-b155-38165f8ebef5",
+        "ownerName": "6",
+        "reading": 45062,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      },
+      {
+        "id": "7188ad23-5255-4aab-a913-c65050656fec",
+        "ownerName": "7",
+        "reading": 40291,
+        "ocrText": "",
+        "capturedAt": "2026-05-26T06:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "3892c1db-ebab-40d3-8a71-da9dd91eb607",
+    "createdAt": "2026-04-21T06:00:00.000Z",
+    "readings": [
+      {
+        "id": "4fb526d2-3c52-4690-9caa-0c7a9a9fec5f",
+        "ownerName": "MM",
+        "reading": 11680,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z",
+        "isMotherMeter": true
+      },
+      {
+        "id": "ea8395cf-f45d-4387-931c-6eea2d25ab53",
+        "ownerName": "1A",
+        "reading": 28931,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      },
+      {
+        "id": "be6b3aa3-8db9-45aa-8840-712c2988174f",
+        "ownerName": "1B",
+        "reading": 26666,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      },
+      {
+        "id": "f38c1a27-d04a-454f-86c3-16c44b06f84f",
+        "ownerName": "2A",
+        "reading": 16519,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      },
+      {
+        "id": "4ed1f74d-7ae9-43f4-aeb7-f1d146378f6a",
+        "ownerName": "2B",
+        "reading": 19928,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      },
+      {
+        "id": "3d94a576-6dc4-41c9-aa3c-3b63d01668d7",
+        "ownerName": "3A",
+        "reading": 19320,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      },
+      {
+        "id": "290e9559-bc3e-4814-913c-0b6bc7d652be",
+        "ownerName": "3B",
+        "reading": 37495,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      },
+      {
+        "id": "39feda8b-e447-4f2a-b9fd-1c4574bf6d0f",
+        "ownerName": "4",
+        "reading": 24826,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      },
+      {
+        "id": "3d855320-1388-4abb-b00f-9211f73a12a9",
+        "ownerName": "5",
+        "reading": 84710,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      },
+      {
+        "id": "a80d8a3c-e299-4628-aac4-c9d388e84715",
+        "ownerName": "6",
+        "reading": 44878,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      },
+      {
+        "id": "6e9aa334-14c0-45bf-9f03-4a7427ebf6a1",
+        "ownerName": "7",
+        "reading": 40118,
+        "ocrText": "",
+        "capturedAt": "2026-04-21T06:00:00.000Z"
+      }
+    ]
+  }
+]

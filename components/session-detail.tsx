@@ -6,12 +6,12 @@ import { Check, Pencil, X } from 'lucide-react';
 import SessionTable from '@/components/session-table';
 import { Button } from '@/components/ui/button';
 import {
-  STORAGE_KEY,
   formatSessionDate,
   sortSessions,
   type MeterReading,
   type MeterSession,
 } from '@/lib/meter-ops';
+import { getSessionsAction, saveSessionsAction } from '@/app/actions';
 
 type SessionDetailProps = {
   sessionId: string;
@@ -24,39 +24,35 @@ export default function SessionDetail({ sessionId }: SessionDetailProps) {
   const [dateDraft, setDateDraft] = useState('');
 
   useEffect(() => {
-    const storedValue = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!storedValue) {
-      setIsLoaded(true);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(storedValue) as MeterSession[];
-      const selected = sortSessions(parsed).find((item) => item.id === sessionId) ?? null;
-      setSession(selected);
-    } catch (error) {
-      console.error('Failed to read saved meter sessions:', error);
-      setSession(null);
-    } finally {
-      setIsLoaded(true);
-    }
+    const loadSessions = async () => {
+      try {
+        const parsed = await getSessionsAction();
+        const selected = sortSessions(Array.isArray(parsed) ? parsed : []).find((item: any) => item.id === sessionId) ?? null;
+        setSession(selected);
+      } catch (error) {
+        console.error('Failed to read saved meter sessions:', error);
+        setSession(null);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    loadSessions();
   }, [sessionId]);
 
   useEffect(() => {
     if (!isLoaded || !session) return;
 
-    const storedValue = window.localStorage.getItem(STORAGE_KEY);
-    let allSessions: MeterSession[] = [];
-
-    try {
-      allSessions = storedValue ? (JSON.parse(storedValue) as MeterSession[]) : [];
-    } catch {
-      allSessions = [];
-    }
-
-    const nextSessions = allSessions.map((s) => (s.id === session.id ? session : s));
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSessions));
+    const updateSessions = async () => {
+      try {
+        const parsed = await getSessionsAction();
+        let allSessions: MeterSession[] = Array.isArray(parsed) ? parsed : [];
+        const nextSessions = allSessions.map((s) => (s.id === session.id ? session : s));
+        await saveSessionsAction(nextSessions);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    updateSessions();
   }, [session, isLoaded]);
 
   const updateReading = (
