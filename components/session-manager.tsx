@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Calculator, Check, FileText, Plus, Trash2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MeterReadingsChart from '@/components/meter-readings-chart';
+import RecentConsumptionCard from '@/components/recent-consumption-card';
 import {
   formatSessionDate,
   sanitizeReadingInput,
@@ -268,6 +269,8 @@ export default function SessionManager() {
         </section>
 
         {sessions.length >= 2 ? <MeterReadingsChart sessions={sessions} /> : null}
+
+        {sessions.length >= 2 ? <RecentConsumptionCard sessions={sessions} /> : null}
 
         <section className="surface-card rounded-[1.75rem] p-6 sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
