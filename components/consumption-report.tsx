@@ -15,7 +15,7 @@ import {
   sortSessions,
   type MeterSession,
 } from '@/lib/meter-ops';
-import { getSessionsAction } from '@/app/actions';
+import { getSessionsAction, saveLastUsageAction } from '@/app/actions';
 
 type ConsumptionReportProps = {
   firstSessionId: string | null;
@@ -58,6 +58,20 @@ export default function ConsumptionReport({
 
     return buildConsumptionComparison(firstSession, secondSession);
   }, [firstSessionId, secondSessionId, sessions]);
+
+  useEffect(() => {
+    if (!comparison || comparison.rows.length === 0) {
+      return;
+    }
+
+    const amount = comparison.rows.reduce((sum, row) => sum + row.cost, 0);
+    saveLastUsageAction({
+      amount,
+      calculatedAt: new Date().toISOString(),
+      fromDate: comparison.olderSession.createdAt,
+      toDate: comparison.newerSession.createdAt,
+    });
+  }, [comparison]);
 
   return (
     <main className="app-shell">

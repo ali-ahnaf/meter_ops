@@ -7,6 +7,7 @@ import { Calculator, Check, FileText, Plus, Trash2, Upload, X } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import MeterReadingsChart from '@/components/meter-readings-chart';
 import RecentConsumptionCard from '@/components/recent-consumption-card';
+import LastUsageCard, { type LastUsage } from '@/components/last-usage-card';
 import {
   formatSessionDate,
   sanitizeReadingInput,
@@ -14,7 +15,7 @@ import {
   type MeterReading,
   type MeterSession,
 } from '@/lib/meter-ops';
-import { getSessionsAction, saveSessionsAction } from '@/app/actions';
+import { getLastUsageAction, getSessionsAction, saveSessionsAction } from '@/app/actions';
 
 type ManualDraft = {
   ownerName: string;
@@ -39,6 +40,7 @@ export default function SessionManager() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importDate, setImportDate] = useState('');
+  const [lastUsage, setLastUsage] = useState<LastUsage | null>(null);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -53,6 +55,12 @@ export default function SessionManager() {
       }
     };
     loadSessions();
+  }, []);
+
+  useEffect(() => {
+    getLastUsageAction()
+      .then((usage) => setLastUsage(usage ?? null))
+      .catch((error) => console.error('Failed to read last usage:', error));
   }, []);
 
   useEffect(() => {
@@ -267,6 +275,8 @@ export default function SessionManager() {
             </div>
           </div>
         </section>
+
+        <LastUsageCard usage={lastUsage} />
 
         {sessions.length >= 2 ? <MeterReadingsChart sessions={sessions} /> : null}
 

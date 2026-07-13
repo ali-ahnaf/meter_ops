@@ -6,3 +6,9 @@ node_modules
 *.sqlite-journal
 coverage
 tsconfig.tsbuildinfo
+
+# local data stores
+db.json
+water-db.json
+last-usage.json
+water-last-usage.json
