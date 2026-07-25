@@ -311,6 +311,20 @@ export default function WaterSessionManager() {
                           Subtotal ৳{formatUnits(calcResult.amount * 2)} + 15% VAT ৳{formatUnits(calcResult.amount * 2 * 0.15)} = Total ৳{formatUnits(calcResult.amount * 2 * 1.15)}
                         </p>
                       </div>
+                    ) : null}
+                    {calcResult ? (
+                      <p className="mt-2 text-xs text-slate-400">
+                        Estimated bill for 1 month: ৳
+                        {formatUnits(
+                          (calcResult.amount /
+                            Math.max(
+                              1,
+                              (new Date(calcResult.toDate).getTime() - new Date(calcResult.fromDate).getTime()) / (1000 * 60 * 60 * 24)
+                            )) *
+                            30 *
+                            1.15
+                        )}
+                      </p>
                     ) : firstId && secondId ? (
                       <div className="rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Pick two different sessions.</div>
                     ) : null}
