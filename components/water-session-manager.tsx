@@ -5,12 +5,7 @@ import { Calculator, Droplets, FileText, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatUnits, formatWaterDate, sortWaterSessions, type WaterSession } from "@/lib/water-ops";
 import { sanitizeReadingInput } from "@/lib/meter-ops";
-import {
-  getWaterLastUsageAction,
-  getWaterSessionsAction,
-  saveWaterLastUsageAction,
-  saveWaterSessionsAction,
-} from "@/app/actions";
+import { getWaterLastUsageAction, getWaterSessionsAction, saveWaterLastUsageAction, saveWaterSessionsAction } from "@/app/actions";
 import WaterReadingsChart from "@/components/water-readings-chart";
 import LastUsageCard, { type LastUsage } from "@/components/last-usage-card";
 
@@ -148,9 +143,7 @@ export default function WaterSessionManager() {
               <p className="text-sm uppercase tracking-[0.14em] text-slate-500">WASA</p>
               <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Water</h1>
               <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Log water meter sessions. Enter the date and amount in units for each reading.</p>
-              <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-                WASA water tariff for Residential Connection - 16.7 tk per m3 (1m3 = 1 unit)
-              </p>
+              <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">WASA water tariff for Residential Connection - 16.7 tk per m3 (1m3 = 1 unit)</p>
             </div>
 
             <div className="flex flex-wrap items-start gap-3">
@@ -311,9 +304,12 @@ export default function WaterSessionManager() {
                     {calcResult ? (
                       <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-5">
                         <p className="text-sm text-slate-500">
-                          {formatUnits(calcResult.diff)} units × {WATER_RATE}
+                          {formatUnits(calcResult.diff)} units x {WATER_RATE} x 2
                         </p>
-                        <p className="mt-1 text-3xl font-bold text-slate-900">৳{formatUnits(calcResult.amount)}</p>
+                        <p className="mt-1 text-3xl font-bold text-slate-900">৳{formatUnits(calcResult.amount * 2 * 1.15)}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Subtotal ৳{formatUnits(calcResult.amount * 2)} + 15% VAT ৳{formatUnits(calcResult.amount * 2 * 0.15)} = Total ৳{formatUnits(calcResult.amount * 2 * 1.15)}
+                        </p>
                       </div>
                     ) : firstId && secondId ? (
                       <div className="rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Pick two different sessions.</div>

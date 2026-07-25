@@ -1,31 +1,19 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Calculator } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  buildConsumptionComparison,
-  formatCost,
-  formatReadingWithUnit,
-  TRANSFORMER_LOSS_RATE,
-} from '@/lib/consumption';
-import {
-  formatSessionDate,
-  sortSessions,
-  type MeterSession,
-} from '@/lib/meter-ops';
-import { getSessionsAction, saveLastUsageAction } from '@/app/actions';
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Calculator } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { buildConsumptionComparison, formatCost, formatReadingWithUnit, TRANSFORMER_LOSS_RATE } from "@/lib/consumption";
+import { formatSessionDate, sortSessions, type MeterSession } from "@/lib/meter-ops";
+import { getSessionsAction, saveLastUsageAction } from "@/app/actions";
 
 type ConsumptionReportProps = {
   firstSessionId: string | null;
   secondSessionId: string | null;
 };
 
-export default function ConsumptionReport({
-  firstSessionId,
-  secondSessionId,
-}: ConsumptionReportProps) {
+export default function ConsumptionReport({ firstSessionId, secondSessionId }: ConsumptionReportProps) {
   const [sessions, setSessions] = useState<MeterSession[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -35,7 +23,7 @@ export default function ConsumptionReport({
         const parsed = await getSessionsAction();
         setSessions(sortSessions(Array.isArray(parsed) ? parsed : []));
       } catch (error) {
-        console.error('Failed to read saved meter sessions:', error);
+        console.error("Failed to read saved meter sessions:", error);
         setSessions([]);
       } finally {
         setIsLoaded(true);
@@ -80,15 +68,10 @@ export default function ConsumptionReport({
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="max-w-3xl">
               <p className="text-sm uppercase tracking-[0.14em] text-slate-500">Consumption</p>
-              <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">
-                Session comparison
-              </h1>
+              <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Session comparison</h1>
               <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-                Normal meter consumption: newer reading minus older reading. Cost: progressive slab
-                tariff (lifeline 4.63 within 50 units, otherwise stepped 5.26 → 17.25) + 5% VAT.
-                Mother meter net consumption: raw diff minus sum of all normal meter consumptions.
-                Mother meter cost uses the flat 10.50 rate + 5% VAT plus an extra 15% transformer
-                loss.
+                Normal meter consumption: newer reading minus older reading. Cost: progressive slab tariff (lifeline 4.63 within 50 units, otherwise stepped 5.26 → 17.25) + 5% VAT. Mother meter net consumption: raw diff minus sum of all normal meter
+                consumptions. Mother meter cost uses the flat 10.50 rate + 5% VAT plus an extra 15% transformer loss.
               </p>
             </div>
 
@@ -102,9 +85,7 @@ export default function ConsumptionReport({
         </section>
 
         {!isLoaded ? (
-          <section className="surface-card rounded-[1.75rem] p-6 text-slate-600 sm:p-8">
-            Loading sessions...
-          </section>
+          <section className="surface-card rounded-[1.75rem] p-6 text-slate-600 sm:p-8">Loading sessions...</section>
         ) : !firstSessionId || !secondSessionId ? (
           <EmptyState message="Pick two sessions from the home page before opening the calculation view." />
         ) : !comparison ? (
@@ -113,27 +94,19 @@ export default function ConsumptionReport({
           <>
             <section className="surface-card rounded-[1.75rem] p-6 sm:p-8">
               <div className="flex flex-wrap items-center gap-3">
-                <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
-                  Date 1: {formatSessionDate(comparison.olderSession.createdAt)}
-                </div>
-                <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
-                  Date 2: {formatSessionDate(comparison.newerSession.createdAt)}
-                </div>
+                <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Date 1: {formatSessionDate(comparison.olderSession.createdAt)}</div>
+                <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Date 2: {formatSessionDate(comparison.newerSession.createdAt)}</div>
                 <div className="rounded-full bg-blue-50 px-4 py-2 text-sm text-blue-700">
                   {comparison.rows.length} matched meter
-                  {comparison.rows.length === 1 ? '' : 's'}
+                  {comparison.rows.length === 1 ? "" : "s"}
                 </div>
               </div>
 
               {comparison.missingFromOlder.length > 0 || comparison.missingFromNewer.length > 0 ? (
                 <div className="mt-5 rounded-[1.2rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                   Only owners that exist in both sessions are included in the table.
-                  {comparison.missingFromOlder.length > 0
-                    ? ` Missing from date 1: ${comparison.missingFromOlder.join(', ')}.`
-                    : ''}
-                  {comparison.missingFromNewer.length > 0
-                    ? ` Missing from date 2: ${comparison.missingFromNewer.join(', ')}.`
-                    : ''}
+                  {comparison.missingFromOlder.length > 0 ? ` Missing from date 1: ${comparison.missingFromOlder.join(", ")}.` : ""}
+                  {comparison.missingFromNewer.length > 0 ? ` Missing from date 2: ${comparison.missingFromNewer.join(", ")}.` : ""}
                 </div>
               ) : null}
             </section>
@@ -142,13 +115,8 @@ export default function ConsumptionReport({
               {comparison.rows.length === 0 ? (
                 <div className="rounded-[1.5rem] border border-dashed border-slate-300 px-6 py-10 text-center text-slate-600">
                   <Calculator className="mx-auto h-6 w-6 text-slate-400" />
-                  <p className="mt-4 text-lg font-semibold text-slate-900">
-                    No comparable meter owners
-                  </p>
-                  <p className="mt-2 text-sm">
-                    The selected sessions do not share any owner names, so there is nothing useful
-                    to subtract.
-                  </p>
+                  <p className="mt-4 text-lg font-semibold text-slate-900">No comparable meter owners</p>
+                  <p className="mt-2 text-sm">The selected sessions do not share any owner names, so there is nothing useful to subtract.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -164,35 +132,26 @@ export default function ConsumptionReport({
                     </thead>
                     <tbody>
                       {comparison.rows.map((row) => (
-                        <tr
-                          key={row.ownerName}
-                          className={row.isMotherMeter ? 'bg-violet-50' : undefined}
-                        >
+                        <tr key={row.ownerName} className={row.isMotherMeter ? "bg-violet-50" : undefined}>
                           <td className="font-semibold text-slate-900">
                             {row.ownerName}
-                            {row.isMotherMeter && (
-                              <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
-                                Mother
-                              </span>
-                            )}
+                            {row.isMotherMeter && <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">Mother</span>}
                           </td>
-                          <td>{formatReadingWithUnit(row.oldReading.reading)}</td>
-                          <td>{formatReadingWithUnit(row.newReading.reading)}</td>
+                          <td>
+                            {formatReadingWithUnit(row.oldReading.reading)}
+                            {row.isMotherMeter && <span className="ml-1 text-xs text-slate-500">({(row.oldReading.reading / 40).toFixed(2)}) units</span>}
+                          </td>
+                          <td>
+                            {formatReadingWithUnit(row.newReading.reading)}
+                            {row.isMotherMeter && <span className="ml-1 text-xs text-slate-500">({(row.newReading.reading / 40).toFixed(2)}) units</span>}
+                          </td>
                           <td>
                             {formatReadingWithUnit(row.consumption)}
-                            {row.isMotherMeter && row.rawConsumption !== undefined && (
-                              <span className="ml-1 text-xs text-slate-500">
-                                (raw: {formatReadingWithUnit(row.rawConsumption)})
-                              </span>
-                            )}
+                            {row.isMotherMeter && row.rawConsumption !== undefined && <span className="ml-1 text-xs text-slate-500">(raw: {formatReadingWithUnit(row.rawConsumption)})</span>}
                           </td>
                           <td>
                             {formatCost(row.cost)}
-                            {row.isMotherMeter && (
-                              <span className="ml-1 text-xs text-slate-500">
-                                (+{TRANSFORMER_LOSS_RATE * 100}% loss)
-                              </span>
-                            )}
+                            {row.isMotherMeter && <span className="ml-1 text-xs text-slate-500">(+{TRANSFORMER_LOSS_RATE * 100}% loss)</span>}
                           </td>
                         </tr>
                       ))}
