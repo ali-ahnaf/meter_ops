@@ -15,6 +15,19 @@ export type MeterSession = {
 };
 
 
+export type LastUsage = {
+  /** Calculated cost in Taka. */
+  amount: number;
+  /** ISO timestamp of when the calculation was run. */
+  calculatedAt: string;
+  /** ISO date of the older session used in the calculation. */
+  fromDate?: string;
+  /** ISO date of the newer session used in the calculation. */
+  toDate?: string;
+  /** Optional line describing how the amount was derived (e.g. "12 units × 16.7"). */
+  detail?: string;
+};
+
 export type OcrRegion = {
   x: number;
   y: number;
@@ -40,6 +53,33 @@ export function sortSessions(sessions: MeterSession[]) {
     (left, right) =>
       new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
   );
+}
+
+/**
+ * Parses pasted "OWNER  READING" lines into readings. Lines that don't match
+ * are skipped. The owner `MM` is flagged as the mother meter. `createId` lets
+ * React Native supply its own UUID source, since Hermes has no `crypto`.
+ */
+export function parsePastedReadings(
+  text: string,
+  capturedAt: string,
+  createId: () => string = () => crypto.randomUUID(),
+): MeterReading[] {
+  return text.split('\n').flatMap((line) => {
+    const match = line.trim().match(/^(\S+)\s+([\d.]+)/);
+    if (!match) return [];
+    const ownerName = match[1];
+    const readingValue = Number(match[2]);
+    if (!Number.isFinite(readingValue)) return [];
+    return [{
+      id: createId(),
+      ownerName,
+      reading: readingValue,
+      ocrText: '',
+      capturedAt,
+      ...(ownerName === 'MM' && { isMotherMeter: true }),
+    } satisfies MeterReading];
+  });
 }
 
 export function cleanOcrText(text: string) {

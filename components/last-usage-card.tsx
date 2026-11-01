@@ -1,19 +1,7 @@
 'use client';
 
 import { Receipt } from 'lucide-react';
-
-export type LastUsage = {
-  /** Calculated cost in Taka. */
-  amount: number;
-  /** ISO timestamp of when the calculation was run. */
-  calculatedAt: string;
-  /** ISO date of the older session used in the calculation. */
-  fromDate?: string;
-  /** ISO date of the newer session used in the calculation. */
-  toDate?: string;
-  /** Optional line describing how the amount was derived (e.g. "12 units × 16.7"). */
-  detail?: string;
-};
+import type { LastUsage } from '@/lib/meter-ops';
 
 type LastUsageCardProps = {
   usage: LastUsage | null;

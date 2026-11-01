@@ -7,10 +7,12 @@ import { Calculator, Check, FileText, Plus, Trash2, Upload, X } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import MeterReadingsChart from '@/components/meter-readings-chart';
 import RecentConsumptionCard from '@/components/recent-consumption-card';
-import LastUsageCard, { type LastUsage } from '@/components/last-usage-card';
+import LastUsageCard from '@/components/last-usage-card';
 import {
   formatSessionDate,
+  parsePastedReadings,
   sanitizeReadingInput,
+  type LastUsage,
   sortSessions,
   type MeterReading,
   type MeterSession,
@@ -117,23 +119,7 @@ export default function SessionManager() {
 
   const importReadings = () => {
     const capturedAt = new Date(`${importDate}T12:00:00`).toISOString();
-    const readings: MeterReading[] = importText
-      .split('\n')
-      .flatMap((line) => {
-        const match = line.trim().match(/^(\S+)\s+([\d.]+)/);
-        if (!match) return [];
-        const ownerName = match[1];
-        const readingValue = Number(match[2]);
-        if (!Number.isFinite(readingValue)) return [];
-        return [{
-          id: crypto.randomUUID(),
-          ownerName,
-          reading: readingValue,
-          ocrText: '',
-          capturedAt,
-          ...(ownerName === 'MM' && { isMotherMeter: true }),
-        } satisfies MeterReading];
-      });
+    const readings = parsePastedReadings(importText, capturedAt);
 
     if (readings.length === 0) return;
 

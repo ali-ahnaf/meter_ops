@@ -48,6 +48,16 @@ Keep billing math out of components (per AGENT.md). `buildConsumptionComparison(
 - `components/` — page-level client components; `components/ui/` holds primitives (prefer these over raw Tailwind for shared elements)
 - `lib/` — `meter-ops.ts` (types, OCR, formatting), `consumption.ts` (billing), `water-ops.ts`, `fonts.ts`, `utils.ts`
 
+## Mobile (`mobile/`)
+
+Offline Android app (Expo SDK 58, Expo Router, Android only). Separate `mobile/package.json` — the root is React 18, Expo needs 19, so there are no npm workspaces. `npm install` runs with `legacy-peer-deps` (set in `mobile/.npmrc`).
+
+- Commands (from `mobile/`): `npx expo run:android` (dev build), `npm run typecheck`, `npm run lint`, `npx expo-doctor`, `npx eas-cli build -p android --profile preview` (APK for sideloading).
+- **Shared logic:** mobile imports the repo-root `lib/` (billing, formatting, water bill) as `@lib/*`, via `watchFolders` in `mobile/metro.config.js` and a `paths` alias in `mobile/tsconfig.json`. Files in `lib/` must stay free of Next/alias imports (use relative imports) and of globals Hermes lacks (e.g. `crypto.randomUUID` — pass an id factory in instead).
+- **Persistence:** AsyncStorage, one key per web JSON file (`meterops:sessions`, `meterops:waterSessions`, `meterops:lastUsage`, `meterops:waterLastUsage`), same shapes as the web files. See `mobile/src/storage.ts`. No server calls.
+- **Backup:** header menu → Export writes `meter-ops-backup-YYYY-MM-DD.json` (`{ app: 'meter-ops', version: 1, exportedAt, sessions, waterSessions, lastUsage, waterLastUsage }`) and opens the share sheet. Import accepts that format or a bare web `db.json` / `water-db.json`, validates it, asks for confirmation, then replaces the data (a bare file replaces only its own dataset). Invalid files raise an error alert and change nothing. See `mobile/src/backup.ts`.
+- UI conventions: `.agents/react-native/SKILL.md` (read its `packages/app` as `mobile/`).
+
 ## Deployment
 
 `next.config.mjs` uses `output: 'standalone'`. Build → `copy-static.js` copies `.next/static` and `public/` into `.next/standalone`. Run under PM2 via `ecosystem.config.js` (app `meterops`, fork mode, `npm run start:prod`).

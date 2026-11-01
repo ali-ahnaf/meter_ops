@@ -1,4 +1,4 @@
-import { formatReading, type MeterReading, type MeterSession } from "@/lib/meter-ops";
+import { formatReading, type MeterReading, type MeterSession } from "./meter-ops";
 
 export const RATE_PER_KWH = 12.5;
 export const VAT_RATE = 0.05;

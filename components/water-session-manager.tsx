@@ -3,13 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Calculator, Droplets, FileText, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatUnits, formatWaterDate, sortWaterSessions, type WaterSession } from "@/lib/water-ops";
-import { sanitizeReadingInput } from "@/lib/meter-ops";
+import { calculateWaterBill, describeWaterBill, estimateMonthlyWaterBill, formatUnits, formatWaterDate, sortWaterSessions, WATER_RATE, type WaterSession } from "@/lib/water-ops";
+import { sanitizeReadingInput, type LastUsage } from "@/lib/meter-ops";
 import { getWaterLastUsageAction, getWaterSessionsAction, saveWaterLastUsageAction, saveWaterSessionsAction } from "@/app/actions";
 import WaterReadingsChart from "@/components/water-readings-chart";
-import LastUsageCard, { type LastUsage } from "@/components/last-usage-card";
-
-const WATER_RATE = 16.7;
+import LastUsageCard from "@/components/last-usage-card";
 
 type WaterDraft = {
   date: string;
@@ -109,13 +107,7 @@ export default function WaterSessionManager() {
     if (!first || !second || first.id === second.id) {
       return null;
     }
-    const diff = Math.abs(first.amount - second.amount);
-    return {
-      diff,
-      amount: diff * WATER_RATE,
-      fromDate: first.createdAt,
-      toDate: second.createdAt,
-    };
+    return calculateWaterBill(first, second);
   }, [sessions, firstId, secondId]);
 
   useEffect(() => {
@@ -124,11 +116,11 @@ export default function WaterSessionManager() {
     }
 
     const usage: LastUsage = {
-      amount: calcResult.amount,
+      amount: calcResult.total,
       calculatedAt: new Date().toISOString(),
       fromDate: calcResult.fromDate,
       toDate: calcResult.toDate,
-      detail: `${formatUnits(calcResult.diff)} units × ${WATER_RATE}`,
+      detail: describeWaterBill(calcResult),
     };
     setLastUsage(usage);
     saveWaterLastUsageAction(usage);
@@ -306,24 +298,16 @@ export default function WaterSessionManager() {
                         <p className="text-sm text-slate-500">
                           {formatUnits(calcResult.diff)} units x {WATER_RATE} x 2
                         </p>
-                        <p className="mt-1 text-3xl font-bold text-slate-900">৳{formatUnits(calcResult.amount * 2 * 1.15)}</p>
+                        <p className="mt-1 text-3xl font-bold text-slate-900">৳{formatUnits(calcResult.total)}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          Subtotal ৳{formatUnits(calcResult.amount * 2)} + 15% VAT ৳{formatUnits(calcResult.amount * 2 * 0.15)} = Total ৳{formatUnits(calcResult.amount * 2 * 1.15)}
+                          Subtotal ৳{formatUnits(calcResult.subtotal)} + 15% VAT ৳{formatUnits(calcResult.vat)} = Total ৳{formatUnits(calcResult.total)}
                         </p>
                       </div>
                     ) : null}
                     {calcResult ? (
                       <p className="mt-2 text-xs text-slate-400">
                         Estimated bill for 1 month: ৳
-                        {formatUnits(
-                          (calcResult.amount /
-                            Math.max(
-                              1,
-                              (new Date(calcResult.toDate).getTime() - new Date(calcResult.fromDate).getTime()) / (1000 * 60 * 60 * 24)
-                            )) *
-                            30 *
-                            1.15
-                        )}
+                        {formatUnits(estimateMonthlyWaterBill(calcResult))}
                       </p>
                     ) : firstId && secondId ? (
                       <div className="rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Pick two different sessions.</div>

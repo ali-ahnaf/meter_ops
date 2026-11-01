@@ -71,7 +71,7 @@ export default function ConsumptionReport({ firstSessionId, secondSessionId }: C
               <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Session comparison</h1>
               <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
                 Normal meter consumption: newer reading minus older reading. Cost: progressive slab tariff (lifeline 4.63 within 50 units, otherwise stepped 5.26 → 17.25) + 5% VAT. Mother meter net consumption: raw diff minus sum of all normal meter
-                consumptions. Mother meter cost uses the flat 10.50 rate + 5% VAT plus an extra 15% transformer loss.
+                consumptions. Mother meter cost uses the flat 12.5/unit rate + 5% VAT plus an extra 15% transformer loss.
               </p>
             </div>
 
