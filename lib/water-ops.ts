@@ -68,3 +68,22 @@ export function estimateMonthlyWaterBill(bill: WaterBill) {
 export function describeWaterBill(bill: WaterBill) {
   return `${formatUnits(bill.diff)} units × ${WATER_RATE} × ${WATER_BILL_MULTIPLIER} + ${WATER_VAT_RATE * 100}% VAT`;
 }
+
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+/**
+ * Current month's estimated bill from saved readings: newest reading vs the oldest
+ * reading within 30 days of it (falls back to the previous reading), scaled to
+ * 30 days. Includes the ×2 sewer charge and VAT. Null without two readings on different days.
+ */
+export function estimateCurrentMonthWaterBill(sessions: WaterSession[]) {
+  const [latest, ...older] = sortWaterSessions(sessions);
+  if (!latest) return null;
+  const latestTime = new Date(latest.createdAt).getTime();
+  const base = [...older].reverse().find((s) => latestTime - new Date(s.createdAt).getTime() <= 30 * DAY_MS) ?? older[0];
+  if (!base) return null;
+  const days = (latestTime - new Date(base.createdAt).getTime()) / DAY_MS;
+  if (days <= 0) return null;
+  const bill = calculateWaterBill(base, latest);
+  return { dailyUsage: bill.diff / days, total: (bill.total / days) * 30 };
+}

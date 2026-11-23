@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Calculator, Droplets, FileText, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { calculateWaterBill, describeWaterBill, estimateMonthlyWaterBill, formatUnits, formatWaterDate, sortWaterSessions, WATER_RATE, type WaterSession } from "@/lib/water-ops";
+import { calculateWaterBill, describeWaterBill, estimateCurrentMonthWaterBill, estimateMonthlyWaterBill, formatUnits, formatWaterDate, sortWaterSessions, WATER_RATE, WATER_VAT_RATE, type WaterSession } from "@/lib/water-ops";
 import { sanitizeReadingInput, type LastUsage } from "@/lib/meter-ops";
 import { getWaterLastUsageAction, getWaterSessionsAction, saveWaterLastUsageAction, saveWaterSessionsAction } from "@/app/actions";
 import WaterReadingsChart from "@/components/water-readings-chart";
@@ -101,6 +101,8 @@ export default function WaterSessionManager() {
 
   const closeCalc = () => setIsCalcOpen(false);
 
+  const estimate = useMemo(() => estimateCurrentMonthWaterBill(sessions), [sessions]);
+
   const calcResult = useMemo(() => {
     const first = sessions.find((s) => s.id === firstId);
     const second = sessions.find((s) => s.id === secondId);
@@ -132,6 +134,14 @@ export default function WaterSessionManager() {
         <section className="surface-card rounded-[2rem] p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="max-w-2xl">
+              {estimate ? (
+                <div
+                  className="mb-3 inline-flex rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-800"
+                  title={`${formatUnits(estimate.dailyUsage)} units/day × 30 × ${WATER_RATE} × 2 (sewer) + ${WATER_VAT_RATE * 100}% VAT`}
+                >
+                  Estimated bill this month: ৳{formatUnits(estimate.total)}
+                </div>
+              ) : null}
               <p className="text-sm uppercase tracking-[0.14em] text-slate-500">WASA</p>
               <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Water</h1>
               <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Log water meter sessions. Enter the date and amount in units for each reading.</p>
