@@ -13,7 +13,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.meterops.app"
+      "package": "com.meterops.app",
+      "versionCode": 2
     },
     "plugins": [
       "expo-router",

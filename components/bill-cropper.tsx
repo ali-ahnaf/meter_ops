@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { Printer, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+import { billLayout } from '@/lib/bill-layout';
 
 export default function BillCropper() {
   const [images, setImages] = useState<string[]>([]);
@@ -27,12 +26,7 @@ export default function BillCropper() {
     setInputKey((k) => k + 1);
   };
 
-  const n = clamp(perPage || 1, 1, 64);
-  const c = clamp(cols >= 1 ? cols : Math.ceil(Math.sqrt(n)), 1, 12);
-  const rows = Math.ceil(n / c);
-  const pages = Array.from({ length: Math.ceil(images.length / n) }, (_, p) =>
-    images.slice(p * n, (p + 1) * n),
-  );
+  const { c, rows, pages } = billLayout(images, perPage, cols);
 
   const numberField = (label: string, value: number, set: (v: number) => void, max: number, min = 0) => (
     <div>

@@ -32,6 +32,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused, size }) => <Ionicons name="water-outline" size={size} color={focused ? color.primary : color.muted} />,
         }}
       />
+      <Tabs.Screen
+        name="bills"
+        options={{
+          title: 'Bills',
+          tabBarIcon: ({ focused, size }) => <Ionicons name="print-outline" size={size} color={focused ? color.primary : color.muted} />,
+        }}
+      />
     </Tabs>
   );
 }

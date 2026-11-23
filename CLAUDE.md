@@ -56,6 +56,7 @@ Offline Android app (Expo SDK 58, Expo Router, Android only). Separate `mobile/p
 - **Shared logic:** mobile imports the repo-root `lib/` (billing, formatting, water bill) as `@lib/*`, via `watchFolders` in `mobile/metro.config.js` and a `paths` alias in `mobile/tsconfig.json`. Files in `lib/` must stay free of Next/alias imports (use relative imports) and of globals Hermes lacks (e.g. `crypto.randomUUID` — pass an id factory in instead).
 - **Persistence:** AsyncStorage, one key per web JSON file (`meterops:sessions`, `meterops:waterSessions`, `meterops:lastUsage`, `meterops:waterLastUsage`), same shapes as the web files. See `mobile/src/storage.ts`. No server calls.
 - **Backup:** header menu → Export writes `meter-ops-backup-YYYY-MM-DD.json` (`{ app: 'meter-ops', version: 1, exportedAt, sessions, waterSessions, lastUsage, waterLastUsage }`) and opens the share sheet. Import accepts that format or a bare web `db.json` / `water-db.json`, validates it, asks for confirmation, then replaces the data (a bare file replaces only its own dataset). Invalid files raise an error alert and change nothing. See `mobile/src/backup.ts`.
+- **Bills tab:** `mobile/src/app/(tabs)/bills.tsx` mirrors the web `/bills` page. Both use `lib/bill-layout.ts` for the grid math. Mobile prints through `expo-print` with HTML that copies the web print CSS (`mobile/src/billPrint.ts`); keep it in sync with the `.a4-page` rules in `app/globals.css`.
 - UI conventions: `.agents/react-native/SKILL.md` (read its `packages/app` as `mobile/`).
 
 ## Deployment
