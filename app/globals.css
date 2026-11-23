@@ -180,3 +180,31 @@ textarea {
     min-width: 38rem;
   }
 }
+
+/* Bill cropper: A4 page at 96dpi on screen, real A4 on print */
+.a4-page {
+  width: 794px;
+  height: 1123px;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .a4-page {
+    width: 210mm;
+    height: 297mm;
+    box-shadow: none;
+    break-after: page;
+  }
+
+  .a4-page:last-child {
+    break-after: auto;
+  }
+}

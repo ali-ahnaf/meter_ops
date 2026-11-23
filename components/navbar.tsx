@@ -3,18 +3,19 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Droplets, Zap } from 'lucide-react';
+import { Droplets, Printer, Zap } from 'lucide-react';
 
 const links = [
   { href: '/', label: 'DPDC', icon: Zap },
   { href: '/wasa', label: 'WASA', icon: Droplets },
+  { href: '/bills', label: 'Bills', icon: Printer },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-[color:var(--border)] bg-[color:var(--surface)] backdrop-blur">
+    <nav className="print:hidden sticky top-0 z-40 border-b border-[color:var(--border)] bg-[color:var(--surface)] backdrop-blur">
       <div className="page-wrap flex items-center justify-between px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
           <Image
