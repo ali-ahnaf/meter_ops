@@ -17,7 +17,6 @@ water-last-usage.json
 .expo/
 mobile/android/
 mobile/ios/
-*.apk
 *.aab
 *.jks
 *.keystore
